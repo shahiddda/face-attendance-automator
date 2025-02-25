@@ -17,7 +17,7 @@ interface PersonCardProps {
 const PersonCard: React.FC<PersonCardProps> = ({ person, attendance, className = '' }) => {
   const badgeVariant = attendance ? (
     attendance.status === 'present' ? 'default' : 
-    attendance.status === 'late' ? 'warning' : 'destructive'
+    attendance.status === 'late' ? 'secondary' : 'destructive'
   ) : undefined;
   
   const badgeText = attendance ? (

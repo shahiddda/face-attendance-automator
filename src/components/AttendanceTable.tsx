@@ -33,7 +33,7 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, className = 
                     record.status === 'present'
                       ? 'default'
                       : record.status === 'late'
-                      ? 'warning'
+                      ? 'secondary'
                       : 'destructive'
                   }
                 >
