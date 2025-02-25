@@ -5,14 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import WebcamCapture from '../components/WebcamCapture';
 import PersonCard from '../components/PersonCard';
 import AttendanceTable from '../components/AttendanceTable';
+import RegisterPersonForm from '../components/RegisterPersonForm';
 import { getPeople, getAttendanceRecords, addSampleData, Person, AttendanceRecord, loadModels } from '@/lib/face-api';
 import { UserPlusIcon, Users, ClockIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [people, setPeople] = useState<Person[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [recentDetections, setRecentDetections] = useState<Person[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
 
   useEffect(() => {
     const initializePage = async () => {
@@ -29,6 +32,7 @@ const Index = () => {
         setRecords(getAttendanceRecords());
       } catch (error) {
         console.error('Error initializing page:', error);
+        toast.error('Failed to initialize face detection. Please refresh the page.');
       } finally {
         setIsLoading(false);
       }
@@ -48,6 +52,11 @@ const Index = () => {
     
     // Refresh attendance records
     setRecords(getAttendanceRecords());
+  };
+
+  const handlePersonRegistered = () => {
+    // Refresh people list
+    setPeople(getPeople());
   };
 
   return (
@@ -171,10 +180,20 @@ const Index = () => {
 
         {/* Register New Person - Action Button */}
         <div className="fixed bottom-8 right-8">
-          <Button className="rounded-full w-12 h-12 p-0 shadow-lg">
+          <Button 
+            className="rounded-full w-12 h-12 p-0 shadow-lg"
+            onClick={() => setShowRegisterForm(true)}
+          >
             <UserPlusIcon className="h-6 w-6" />
           </Button>
         </div>
+
+        {/* Register Person Form */}
+        <RegisterPersonForm 
+          isOpen={showRegisterForm}
+          onClose={() => setShowRegisterForm(false)}
+          onPersonRegistered={handlePersonRegistered}
+        />
       </div>
     </div>
   );
