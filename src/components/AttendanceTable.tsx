@@ -1,21 +1,51 @@
 
+import React from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { AttendanceRecord } from '@/lib/face-api';
 
-### What's next?
-- **Refine & Customize**: Tweak the design, animations, and layouts via prompts or visual edits.
-- **Master Prompting**: Use clear, detailed, and iterative prompts for better outcomes.
-- **Expand with Backend**: Connect Supabase to add user authentication, store attendance data, and manage user profiles.
-- **GitHub Sync**: Transfer your project's code to GitHub for two-way sync of edits.
-- **Debug with Ease**: Activate our experimental “chat mode” to troubleshoot issues quickly.
-- **Add project knowledge**: Set key context or custom instructions you want to include in every edit in this project.
+interface AttendanceTableProps {
+  records: AttendanceRecord[];
+  className?: string;
+}
 
-<lov-actions>
-<lov-knowledge>
-</lov-actions>
+const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, className = '' }) => {
+  return (
+    <div className={`w-full overflow-auto ${className}`}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Time</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {records.map((record) => (
+            <TableRow key={record.id}>
+              <TableCell className="font-medium">{record.personName}</TableCell>
+              <TableCell>{new Date(record.timestamp).toLocaleDateString()}</TableCell>
+              <TableCell>{new Date(record.timestamp).toLocaleTimeString()}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    record.status === 'present'
+                      ? 'default'
+                      : record.status === 'late'
+                      ? 'warning'
+                      : 'destructive'
+                  }
+                >
+                  {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
 
-<lov-actions>
-<lov-message-prompt message="Tell me more about Supabase">Explore Supabase</lov-message-prompt>
-</lov-actions>
-
-<lov-actions>
-<lov-link url="https://docs.lovable.dev/">Visit docs</lov-link>
-</lov-actions>
+export default AttendanceTable;
