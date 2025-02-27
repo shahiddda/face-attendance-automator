@@ -63,6 +63,37 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         
         setRecognizedPersons(identified);
         
+        // Draw names on the canvas for recognized faces
+        if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            recognitionResults.forEach(result => {
+              if (result.person) {
+                const detection = result.detection;
+                const box = detection.detection.box;
+                const drawBox = {
+                  x: box.x,
+                  y: box.y,
+                  width: box.width,
+                  height: box.height
+                };
+                
+                // Draw border around face
+                ctx.strokeStyle = '#4ade80'; // Green color
+                ctx.lineWidth = 3;
+                ctx.strokeRect(drawBox.x, drawBox.y, drawBox.width, drawBox.height);
+                
+                // Draw name label
+                ctx.fillStyle = 'rgba(74, 222, 128, 0.8)';
+                ctx.fillRect(drawBox.x, drawBox.y - 30, drawBox.width, 30);
+                ctx.fillStyle = 'white';
+                ctx.font = '16px sans-serif';
+                ctx.fillText(result.person.name, drawBox.x + 5, drawBox.y - 10);
+              }
+            });
+          }
+        }
+        
         if (identified.length > 0) {
           identified.forEach(person => {
             const record = markAttendance(person.id, person.name);
