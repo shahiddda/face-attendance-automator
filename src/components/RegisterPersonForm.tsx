@@ -34,6 +34,7 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
         try {
           await loadModels();
           setModelsLoaded(true);
+          console.log("Face models loaded in registration form");
         } catch (error) {
           console.error("Failed to load face models:", error);
           toast.error("Failed to initialize face detection. Please try again.");
@@ -46,6 +47,7 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
 
   const handleCapture = (imageSrc: string) => {
     setCapturedImage(imageSrc);
+    console.log("Image captured successfully");
   };
 
   const handleRegister = async () => {
@@ -61,13 +63,18 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
 
     try {
       setIsRegistering(true);
+      console.log("Starting registration process for", name);
       
       // Ensure the image is fully loaded
       if (!imageRef.current.complete) {
+        console.log("Waiting for image to load completely...");
         await new Promise(resolve => {
           imageRef.current!.onload = resolve;
         });
       }
+      
+      // Force a small delay to ensure image is fully processed
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       await registerPerson(name, role, imageRef.current);
       toast.success(`${name} has been registered successfully`);

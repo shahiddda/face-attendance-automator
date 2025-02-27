@@ -6,7 +6,7 @@ import WebcamCapture from '../components/WebcamCapture';
 import PersonCard from '../components/PersonCard';
 import AttendanceTable from '../components/AttendanceTable';
 import RegisterPersonForm from '../components/RegisterPersonForm';
-import { getPeople, getAttendanceRecords, addSampleData, Person, AttendanceRecord, loadModels } from '@/lib/face-api';
+import { getPeople, getAttendanceRecords, loadModels, Person, AttendanceRecord } from '@/lib/face-api';
 import { UserPlusIcon, Users, ClockIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,10 +22,8 @@ const Index = () => {
       setIsLoading(true);
       try {
         // Initialize face-api models
+        console.log("Initializing face-api models");
         await loadModels();
-        
-        // Add sample data for demonstration
-        addSampleData();
         
         // Get people and attendance records
         setPeople(getPeople());
@@ -42,6 +40,7 @@ const Index = () => {
   }, []);
 
   const handlePersonDetected = (person: Person) => {
+    console.log("Person detected:", person.name);
     // Add to recent detections if not already there
     setRecentDetections(prev => {
       if (prev.some(p => p.id === person.id)) {
@@ -55,6 +54,7 @@ const Index = () => {
   };
 
   const handlePersonRegistered = () => {
+    console.log("Person registered, refreshing people list");
     // Refresh people list
     setPeople(getPeople());
   };

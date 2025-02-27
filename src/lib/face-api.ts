@@ -29,14 +29,17 @@ export const loadModels = async () => {
   if (modelsLoaded) return;
   
   try {
-    // Load models directly as browser paths
-    await faceapi.loadSsdMobilenetv1Model('/models');
-    await faceapi.loadFaceLandmarkModel('/models');
-    await faceapi.loadFaceRecognitionModel('/models');
-    await faceapi.loadFaceExpressionModel('/models');
+    // Use nets approach as it's more reliable in some environments
+    await faceapi.nets.ssdMobilenetv1.load('/models');
+    await faceapi.nets.faceLandmark68Net.load('/models');
+    await faceapi.nets.faceRecognitionNet.load('/models');
+    await faceapi.nets.faceExpressionNet.load('/models');
     
     console.log('Face-API models loaded successfully');
     modelsLoaded = true;
+    
+    // For demo purposes, let's add sample data after models are loaded
+    addSampleData();
   } catch (error) {
     console.error('Error loading face-api models:', error);
     throw error;
@@ -47,6 +50,13 @@ export const createFaceDescriptor = async (imageElement: HTMLImageElement): Prom
   if (!modelsLoaded) await loadModels();
   
   try {
+    // Make sure the image is fully loaded
+    if (!imageElement.complete) {
+      await new Promise((resolve) => {
+        imageElement.onload = resolve;
+      });
+    }
+    
     const detection = await faceapi.detectSingleFace(imageElement)
       .withFaceLandmarks()
       .withFaceDescriptor();
@@ -129,8 +139,12 @@ export const registerPerson = async (
   imageElement: HTMLImageElement
 ): Promise<Person> => {
   try {
-    if (!modelsLoaded) await loadModels();
+    if (!modelsLoaded) {
+      console.log("Models not loaded, loading now...");
+      await loadModels();
+    }
     
+    console.log("Creating face descriptor for", name);
     const descriptors = await createFaceDescriptor(imageElement);
     const id = `person_${Date.now()}`;
     
@@ -154,7 +168,7 @@ export const registerPerson = async (
     };
     
     people.push(newPerson);
-    console.log(`Person registered: ${name}`, newPerson);
+    console.log(`Person registered successfully: ${name}`, newPerson);
     return newPerson;
   } catch (error) {
     console.error('Error registering person:', error);
@@ -172,6 +186,7 @@ export const markAttendance = (personId: string, personName: string, status: 'pr
   };
   
   attendanceRecords.push(record);
+  console.log(`Attendance marked for ${personName}`, record);
   return record;
 };
 
@@ -186,20 +201,24 @@ export const getPeople = (): Person[] => {
 // For demonstration purposes, we'll add some sample data
 export const addSampleData = () => {
   if (people.length === 0) {
+    console.log("Adding sample people data");
+    // Create dummy descriptors (all zeros) for sample people
+    const dummyDescriptor = new Float32Array(128).fill(0);
+    
     // This would typically come from a database
     people = [
       {
         id: 'person_1',
         name: 'John Doe',
         role: 'Employee',
-        descriptors: [], // Would contain actual descriptors
+        descriptors: [dummyDescriptor], 
         image: '/placeholder.svg'
       },
       {
         id: 'person_2',
         name: 'Jane Smith',
         role: 'Manager',
-        descriptors: [], // Would contain actual descriptors
+        descriptors: [dummyDescriptor],
         image: '/placeholder.svg'
       }
     ];
