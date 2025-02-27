@@ -101,15 +101,17 @@ export const recognizeFaces = async (
     return detections.map(detection => ({ person: null, detection }));
   }
   
-  // For demo purposes, always recognize the first person in our database
-  const firstPerson = people[0];
+  // Instead of always using the first person, randomly select any person from our database
+  // This simulates more realistic recognition behavior
+  const randomIndex = Math.floor(Math.random() * people.length);
+  const randomPerson = people[randomIndex];
   
   // Randomly decide if we should recognize or not (for demo effect)
   const shouldRecognize = Math.random() > 0.3; // 70% chance to recognize
   
   return detections.map(detection => {
     if (shouldRecognize) {
-      return { person: firstPerson, detection };
+      return { person: randomPerson, detection };
     } else {
       return { person: null, detection };
     }
