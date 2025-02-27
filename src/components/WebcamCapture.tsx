@@ -4,7 +4,7 @@ import Webcam from 'react-webcam';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { detectFaces, recognizeFaces, markAttendance, Person } from '@/lib/face-api';
+import { detectFaces, recognizeFaces, markAttendance, Person, loadModels } from '@/lib/face-api';
 import { CameraIcon, CameraOffIcon, UserCheckIcon, RefreshCwIcon, UserPlusIcon } from 'lucide-react';
 
 interface WebcamCaptureProps {
@@ -25,6 +25,23 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   const [facesDetected, setFacesDetected] = useState(0);
   const [recognizedPersons, setRecognizedPersons] = useState<Person[]>([]);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+
+  // Load models on component mount
+  useEffect(() => {
+    const initFaceApi = async () => {
+      try {
+        await loadModels();
+        setModelsLoaded(true);
+        console.log("Face models initialized in WebcamCapture");
+      } catch (error) {
+        console.error("Failed to initialize face models:", error);
+        toast.error("Failed to initialize face detection. Some features may not work correctly.");
+      }
+    };
+    
+    initFaceApi();
+  }, []);
 
   const toggleCamera = () => {
     setIsActive(prev => !prev);
@@ -44,7 +61,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   }, [onCapture]);
 
   const processFaces = useCallback(async () => {
-    if (!webcamRef.current || !webcamRef.current.video || !isActive || isProcessing) return;
+    if (!webcamRef.current || !webcamRef.current.video || !isActive || isProcessing || !modelsLoaded) return;
     
     try {
       setIsProcessing(true);
@@ -112,19 +129,19 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [isActive, isProcessing, onPersonDetected, onRegisterMode]);
+  }, [isActive, isProcessing, onPersonDetected, onRegisterMode, modelsLoaded]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isActive && !onRegisterMode) {
+    if (isActive && !onRegisterMode && modelsLoaded) {
       interval = setInterval(processFaces, 2000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, processFaces, onRegisterMode]);
+  }, [isActive, processFaces, onRegisterMode, modelsLoaded]);
 
   const handleUserMedia = () => {
     setIsCameraReady(true);
@@ -137,7 +154,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden neomorphic-card">
+    <Card className="overflow-hidden">
       <CardContent className="p-0 relative">
         <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
           {isActive ? (
@@ -148,7 +165,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                 screenshotFormat="image/jpeg"
                 videoConstraints={videoConstraints}
                 onUserMedia={handleUserMedia}
-                className="w-full h-full object-cover rounded-lg transition-fade"
+                className="w-full h-full object-cover rounded-lg"
               />
               <canvas
                 ref={canvasRef}
@@ -181,7 +198,6 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           <Button 
             variant={isActive ? "destructive" : "default"}
             onClick={toggleCamera}
-            className="transition-fade"
           >
             {isActive ? (
               <><CameraOffIcon className="w-4 h-4 mr-2" /> Turn Off</>
@@ -201,7 +217,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
               <Button 
                 onClick={processFaces} 
                 variant="outline"
-                disabled={isProcessing}
+                disabled={isProcessing || !modelsLoaded}
               >
                 <RefreshCwIcon className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
                 {isProcessing ? 'Processing...' : 'Scan Now'}

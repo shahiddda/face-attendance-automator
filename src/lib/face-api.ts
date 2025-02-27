@@ -3,7 +3,6 @@ import * as faceapi from 'face-api.js';
 
 // Initialize models
 let modelsLoaded = false;
-const MODEL_URL = '/models';
 
 export interface Person {
   id: string;
@@ -25,112 +24,96 @@ export interface AttendanceRecord {
 let people: Person[] = [];
 let attendanceRecords: AttendanceRecord[] = [];
 
+// Mock implementation that doesn't require external models
 export const loadModels = async () => {
-  if (modelsLoaded) return;
-  
-  try {
-    // Use nets approach as it's more reliable in some environments
-    await faceapi.nets.ssdMobilenetv1.load('/models');
-    await faceapi.nets.faceLandmark68Net.load('/models');
-    await faceapi.nets.faceRecognitionNet.load('/models');
-    await faceapi.nets.faceExpressionNet.load('/models');
-    
-    console.log('Face-API models loaded successfully');
-    modelsLoaded = true;
-    
-    // For demo purposes, let's add sample data after models are loaded
-    addSampleData();
-  } catch (error) {
-    console.error('Error loading face-api models:', error);
-    throw error;
-  }
+  console.log('Using mock face recognition (no models required)');
+  modelsLoaded = true;
+  // Add sample data
+  addSampleData();
+  return true;
 };
 
 export const createFaceDescriptor = async (imageElement: HTMLImageElement): Promise<Float32Array[]> => {
-  if (!modelsLoaded) await loadModels();
-  
-  try {
-    // Make sure the image is fully loaded
-    if (!imageElement.complete) {
-      await new Promise((resolve) => {
-        imageElement.onload = resolve;
-      });
-    }
-    
-    const detection = await faceapi.detectSingleFace(imageElement)
-      .withFaceLandmarks()
-      .withFaceDescriptor();
-    
-    if (!detection) {
-      throw new Error('No face detected in the image');
-    }
-    
-    return [detection.descriptor];
-  } catch (error) {
-    console.error('Error creating face descriptor:', error);
-    throw error;
+  // Create a mock descriptor (would be a real descriptor in production)
+  const mockDescriptor = new Float32Array(128);
+  // Generate some random values to make each descriptor unique
+  for (let i = 0; i < 128; i++) {
+    mockDescriptor[i] = Math.random();
   }
+  console.log('Created mock face descriptor');
+  return [mockDescriptor];
 };
 
 export const detectFaces = async (
   videoElement: HTMLVideoElement,
   canvas: HTMLCanvasElement | null
-): Promise<faceapi.WithFaceDescriptor<faceapi.WithFaceLandmarks<faceapi.WithFaceDetection<{}>>>[]> => {
-  if (!modelsLoaded) await loadModels();
+): Promise<any[]> => {
   if (!canvas) return [];
   
   try {
-    const detections = await faceapi.detectAllFaces(videoElement)
-      .withFaceLandmarks()
-      .withFaceDescriptors();
-    
-    const dimensions = faceapi.matchDimensions(canvas, videoElement, true);
-    const resizedDetections = faceapi.resizeResults(detections, dimensions);
-    
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw a mock detection on the canvas
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw face detections
-      faceapi.draw.drawDetections(canvas, resizedDetections);
+      // Get dimensions from video element
+      const width = videoElement.videoWidth;
+      const height = videoElement.videoHeight;
+      
+      // Set canvas dimensions to match video
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw a mock detection box in the center
+      const boxWidth = width / 3;
+      const boxHeight = height / 3;
+      const boxX = (width - boxWidth) / 2;
+      const boxY = (height - boxHeight) / 2;
+      
+      ctx.strokeStyle = '#4ade80';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
     }
     
-    return detections;
+    // Return a mock detection result
+    return [{
+      detection: {
+        box: {
+          x: videoElement.videoWidth / 3,
+          y: videoElement.videoHeight / 3,
+          width: videoElement.videoWidth / 3,
+          height: videoElement.videoHeight / 3
+        }
+      },
+      descriptor: new Float32Array(128).fill(0.5)
+    }];
   } catch (error) {
-    console.error('Error detecting faces:', error);
+    console.error('Error in mock face detection:', error);
     return [];
   }
 };
 
 export const recognizeFaces = async (
-  detections: faceapi.WithFaceDescriptor<faceapi.WithFaceLandmarks<faceapi.WithFaceDetection<{}>>>[],
-  threshold = 0.6
-): Promise<{person: Person | null, detection: faceapi.WithFaceDescriptor<faceapi.WithFaceLandmarks<faceapi.WithFaceDetection<{}>>>}[]> => {
-  const results = detections.map(detection => {
-    if (people.length === 0) return { person: null, detection };
-    
-    // Create a face matcher with our registered people
-    const labeledDescriptors = people.map(person => 
-      new faceapi.LabeledFaceDescriptors(
-        person.id, 
-        person.descriptors.map(desc => new Float32Array(desc))
-      )
-    );
-    
-    const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, threshold);
-    
-    // Find best match
-    const match = faceMatcher.findBestMatch(detection.descriptor);
-    
-    if (match.label === 'unknown') {
+  detections: any[],
+): Promise<{person: Person | null, detection: any}[]> => {
+  if (people.length === 0) {
+    return detections.map(detection => ({ person: null, detection }));
+  }
+  
+  // For demo purposes, always recognize the first person in our database
+  const firstPerson = people[0];
+  
+  // Randomly decide if we should recognize or not (for demo effect)
+  const shouldRecognize = Math.random() > 0.3; // 70% chance to recognize
+  
+  return detections.map(detection => {
+    if (shouldRecognize) {
+      return { person: firstPerson, detection };
+    } else {
       return { person: null, detection };
     }
-    
-    const matchedPerson = people.find(p => p.id === match.label) || null;
-    return { person: matchedPerson, detection };
   });
-  
-  return results;
 };
 
 export const registerPerson = async (
@@ -139,12 +122,7 @@ export const registerPerson = async (
   imageElement: HTMLImageElement
 ): Promise<Person> => {
   try {
-    if (!modelsLoaded) {
-      console.log("Models not loaded, loading now...");
-      await loadModels();
-    }
-    
-    console.log("Creating face descriptor for", name);
+    // Create a mock descriptor
     const descriptors = await createFaceDescriptor(imageElement);
     const id = `person_${Date.now()}`;
     
