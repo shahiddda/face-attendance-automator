@@ -1,12 +1,12 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import WebcamCapture from './WebcamCapture';
-import { registerPerson } from '@/lib/face-api';
+import { registerPerson, loadModels } from '@/lib/face-api';
 import { UserIcon } from 'lucide-react';
 
 interface RegisterPersonFormProps {
@@ -25,6 +25,24 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+
+  // Ensure models are loaded when the form opens
+  useEffect(() => {
+    if (isOpen && !modelsLoaded) {
+      const loadFaceModels = async () => {
+        try {
+          await loadModels();
+          setModelsLoaded(true);
+        } catch (error) {
+          console.error("Failed to load face models:", error);
+          toast.error("Failed to initialize face detection. Please try again.");
+        }
+      };
+      
+      loadFaceModels();
+    }
+  }, [isOpen, modelsLoaded]);
 
   const handleCapture = (imageSrc: string) => {
     setCapturedImage(imageSrc);
@@ -43,6 +61,14 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
 
     try {
       setIsRegistering(true);
+      
+      // Ensure the image is fully loaded
+      if (!imageRef.current.complete) {
+        await new Promise(resolve => {
+          imageRef.current!.onload = resolve;
+        });
+      }
+      
       await registerPerson(name, role, imageRef.current);
       toast.success(`${name} has been registered successfully`);
       onPersonRegistered();
@@ -50,7 +76,7 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
       onClose();
     } catch (error) {
       console.error('Error registering person:', error);
-      toast.error('Failed to register person');
+      toast.error('Failed to register person. Please try again.');
     } finally {
       setIsRegistering(false);
     }
@@ -67,6 +93,9 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Register New Person</DialogTitle>
+          <DialogDescription>
+            Add a new person to the face recognition system
+          </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
@@ -99,6 +128,7 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
                   src={capturedImage}
                   alt="Captured face"
                   className="w-full h-full object-cover"
+                  crossOrigin="anonymous"
                 />
                 <Button
                   variant="outline"

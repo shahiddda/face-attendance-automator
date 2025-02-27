@@ -29,11 +29,11 @@ export const loadModels = async () => {
   if (modelsLoaded) return;
   
   try {
-    // All models are served from the public/models directory
-    await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+    // Load models directly as browser paths
+    await faceapi.loadSsdMobilenetv1Model('/models');
+    await faceapi.loadFaceLandmarkModel('/models');
+    await faceapi.loadFaceRecognitionModel('/models');
+    await faceapi.loadFaceExpressionModel('/models');
     
     console.log('Face-API models loaded successfully');
     modelsLoaded = true;
@@ -83,9 +83,6 @@ export const detectFaces = async (
       
       // Draw face detections
       faceapi.draw.drawDetections(canvas, resizedDetections);
-      
-      // Draw face landmarks (optional)
-      // faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
     }
     
     return detections;
@@ -157,6 +154,7 @@ export const registerPerson = async (
     };
     
     people.push(newPerson);
+    console.log(`Person registered: ${name}`, newPerson);
     return newPerson;
   } catch (error) {
     console.error('Error registering person:', error);
