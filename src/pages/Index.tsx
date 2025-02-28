@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AttendanceTable from '../components/AttendanceTable';
 import RegisterPersonForm from '../components/RegisterPersonForm';
 import { getPeople, getAttendanceRecords, loadModels, markAttendance, Person, AttendanceRecord } from '@/lib/face-api';
-import { UserPlusIcon, Users, CalendarIcon, ListIcon } from 'lucide-react';
+import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
