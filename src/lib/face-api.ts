@@ -24,6 +24,10 @@ export interface AttendanceRecord {
 let people: Person[] = [];
 let attendanceRecords: AttendanceRecord[] = [];
 
+// Track last attendance time for each person to prevent multiple records in short time
+const lastAttendanceTime: Record<string, number> = {};
+const ATTENDANCE_COOLDOWN_MS = 30000; // 30 seconds cooldown
+
 // Mock implementation that doesn't require external models
 export const loadModels = async () => {
   console.log('Using mock face recognition (no models required)');
@@ -155,6 +159,24 @@ export const registerPerson = async (
 };
 
 export const markAttendance = (personId: string, personName: string, status: 'present' | 'absent' | 'late' = 'present') => {
+  // Check if this person's attendance was marked recently (within cooldown period)
+  const now = Date.now();
+  const lastMarked = lastAttendanceTime[personId] || 0;
+  const timeSinceLastMarked = now - lastMarked;
+  
+  if (timeSinceLastMarked < ATTENDANCE_COOLDOWN_MS) {
+    // Return null or throw an error to indicate attendance was not marked
+    const remainingCooldown = Math.ceil((ATTENDANCE_COOLDOWN_MS - timeSinceLastMarked) / 1000);
+    console.log(`Attendance for ${personName} was already marked. Please wait ${remainingCooldown} seconds.`);
+    return { 
+      success: false, 
+      error: `Attendance already marked. Please wait ${remainingCooldown} seconds.`,
+      personName,
+      lastMarked: new Date(lastMarked) 
+    };
+  }
+  
+  // Create new attendance record
   const record: AttendanceRecord = {
     id: `attendance_${Date.now()}`,
     personId,
@@ -163,9 +185,12 @@ export const markAttendance = (personId: string, personName: string, status: 'pr
     status
   };
   
+  // Update last attendance time for this person
+  lastAttendanceTime[personId] = now;
+  
   attendanceRecords.push(record);
   console.log(`Attendance marked for ${personName}`, record);
-  return record;
+  return { success: true, record };
 };
 
 export const getAttendanceRecords = (): AttendanceRecord[] => {

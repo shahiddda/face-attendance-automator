@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { detectFaces, recognizeFaces, markAttendance, Person, loadModels } from '@/lib/face-api';
-import { CameraIcon, CameraOffIcon, UserCheckIcon, RefreshCwIcon, UserPlusIcon } from 'lucide-react';
+import { CameraIcon, CameraOffIcon, UserCheckIcon, RefreshCwIcon, UserPlusIcon, AlertTriangleIcon } from 'lucide-react';
 
 interface WebcamCaptureProps {
   onPersonDetected?: (person: Person) => void;
@@ -26,6 +26,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   const [recognizedPersons, setRecognizedPersons] = useState<Person[]>([]);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [recentlyMarked, setRecentlyMarked] = useState<{[key: string]: { name: string, time: number, remainingTime: number }}>({});
 
   // Load models on component mount
   useEffect(() => {
@@ -43,10 +44,45 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
     initFaceApi();
   }, []);
 
+  // Update cooldown timers
+  useEffect(() => {
+    if (Object.keys(recentlyMarked).length === 0) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const updatedMarked: {[key: string]: { name: string, time: number, remainingTime: number }} = {};
+      let hasUpdates = false;
+      
+      Object.entries(recentlyMarked).forEach(([id, data]) => {
+        const elapsedMs = now - data.time;
+        const remainingMs = Math.max(0, 30000 - elapsedMs); // 30 seconds cooldown
+        
+        if (remainingMs > 0) {
+          updatedMarked[id] = {
+            ...data,
+            remainingTime: Math.ceil(remainingMs / 1000) // Convert to seconds
+          };
+          hasUpdates = true;
+        }
+      });
+      
+      if (hasUpdates) {
+        setRecentlyMarked(updatedMarked);
+      } else {
+        // Clear the interval if no more cooldowns
+        clearInterval(interval);
+        setRecentlyMarked({});
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [recentlyMarked]);
+
   const toggleCamera = () => {
     setIsActive(prev => !prev);
     if (!isActive) {
       setRecognizedPersons([]);
+      setRecentlyMarked({});
     }
   };
 
@@ -148,10 +184,20 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 0;
                 
+                // Check if this person is on cooldown
+                const isOnCooldown = recentlyMarked[result.person.id] !== undefined;
+                
                 // Add "Recognized!" text below the name
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.font = '12px sans-serif';
-                ctx.fillText('Recognized!', nameX + nameWidth/2, nameY + nameHeight + 15);
+                if (isOnCooldown) {
+                  const remainingTime = recentlyMarked[result.person.id].remainingTime;
+                  ctx.fillStyle = 'rgba(239, 68, 68, 0.8)'; // Red
+                  ctx.font = '12px sans-serif';
+                  ctx.fillText(`Already marked! (${remainingTime}s)`, nameX + nameWidth/2, nameY + nameHeight + 15);
+                } else {
+                  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                  ctx.font = '12px sans-serif';
+                  ctx.fillText('Recognized!', nameX + nameWidth/2, nameY + nameHeight + 15);
+                }
               }
             });
           }
@@ -159,13 +205,55 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         
         if (identified.length > 0) {
           identified.forEach(person => {
-            const record = markAttendance(person.id, person.name);
-            toast.success(`Attendance marked for ${person.name}`, {
-              description: new Date().toLocaleTimeString()
-            });
+            // Check if this person is on cooldown
+            if (recentlyMarked[person.id]) {
+              toast.warning(`${person.name} was already marked recently`, {
+                description: `Please wait ${recentlyMarked[person.id].remainingTime} seconds.`,
+                icon: <AlertTriangleIcon className="h-4 w-4" />
+              });
+              return;
+            }
             
-            if (onPersonDetected) {
-              onPersonDetected(person);
+            // Mark attendance and handle response
+            const result = markAttendance(person.id, person.name);
+            if (result.success) {
+              toast.success(`Attendance marked for ${person.name}`, {
+                description: new Date().toLocaleTimeString()
+              });
+              
+              // Add this person to the recently marked list with cooldown timer
+              setRecentlyMarked(prev => ({
+                ...prev,
+                [person.id]: {
+                  name: person.name,
+                  time: Date.now(),
+                  remainingTime: 30
+                }
+              }));
+              
+              if (onPersonDetected) {
+                onPersonDetected(person);
+              }
+            } else {
+              // Handle the case where attendance marking failed (already marked within cooldown)
+              if (result.error) {
+                toast.warning(`${person.name} was already marked`, {
+                  description: result.error,
+                  icon: <AlertTriangleIcon className="h-4 w-4" />
+                });
+                
+                // Update the recently marked list with this person if not already there
+                if (!recentlyMarked[person.id]) {
+                  setRecentlyMarked(prev => ({
+                    ...prev,
+                    [person.id]: {
+                      name: person.name,
+                      time: Date.now() - (30000 - parseInt(result.error.match(/\d+/)?.[0] || "0") * 1000),
+                      remainingTime: parseInt(result.error.match(/\d+/)?.[0] || "30")
+                    }
+                  }));
+                }
+              }
             }
           });
         }
@@ -175,7 +263,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [isActive, isProcessing, onPersonDetected, onRegisterMode, modelsLoaded]);
+  }, [isActive, isProcessing, onPersonDetected, onRegisterMode, modelsLoaded, recentlyMarked]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -233,16 +321,52 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
               </div>
               
               {/* Display recognized persons */}
-              {recognizedPersons.length > 0 && (
+              {(recognizedPersons.length > 0 || Object.keys(recentlyMarked).length > 0) && (
                 <div className="absolute bottom-3 left-3 right-3 bg-black/40 backdrop-blur-sm text-white px-4 py-2 rounded-lg animate-fade-in">
                   <div className="font-medium mb-1">Recognized Students:</div>
                   <div className="flex flex-wrap gap-2">
-                    {recognizedPersons.map((person) => (
-                      <span key={person.id} className="inline-flex items-center bg-emerald-500/70 px-2 py-1 rounded-full text-sm">
-                        <UserCheckIcon className="w-3 h-3 mr-1" />
-                        {person.name}
-                      </span>
-                    ))}
+                    {recognizedPersons.map((person) => {
+                      const isOnCooldown = recentlyMarked[person.id] !== undefined;
+                      return (
+                        <span 
+                          key={person.id} 
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-sm ${
+                            isOnCooldown 
+                              ? 'bg-red-500/70' 
+                              : 'bg-emerald-500/70'
+                          }`}
+                        >
+                          {isOnCooldown ? (
+                            <AlertTriangleIcon className="w-3 h-3 mr-1" />
+                          ) : (
+                            <UserCheckIcon className="w-3 h-3 mr-1" />
+                          )}
+                          {person.name}
+                          {isOnCooldown && (
+                            <span className="ml-1 text-xs">
+                              ({recentlyMarked[person.id].remainingTime}s)
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                    
+                    {/* Show additional people who are on cooldown but not currently detected */}
+                    {Object.entries(recentlyMarked)
+                      .filter(([id]) => !recognizedPersons.find(p => p.id === id))
+                      .map(([id, data]) => (
+                        <span 
+                          key={id} 
+                          className="inline-flex items-center bg-red-500/70 px-2 py-1 rounded-full text-sm"
+                        >
+                          <AlertTriangleIcon className="w-3 h-3 mr-1" />
+                          {data.name}
+                          <span className="ml-1 text-xs">
+                            ({data.remainingTime}s)
+                          </span>
+                        </span>
+                      ))
+                    }
                   </div>
                 </div>
               )}

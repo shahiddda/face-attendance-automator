@@ -59,9 +59,15 @@ const Index = () => {
   };
 
   const handleMarkAttendance = (person: Person, status: 'present' | 'late' | 'absent' = 'present') => {
-    markAttendance(person.id, person.name, status);
-    setRecords(getAttendanceRecords());
-    toast.success(`Marked ${person.name} as ${status}`);
+    const result = markAttendance(person.id, person.name, status);
+    if (result.success) {
+      setRecords(getAttendanceRecords());
+      toast.success(`Marked ${person.name} as ${status}`);
+    } else {
+      toast.warning(`Could not mark attendance for ${person.name}`, {
+        description: result.error
+      });
+    }
   };
 
   const handleQuickRegister = () => {
