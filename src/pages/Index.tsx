@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AttendanceTable from '../components/AttendanceTable';
 import RegisterPersonForm from '../components/RegisterPersonForm';
 import { getPeople, getAttendanceRecords, loadModels, markAttendance, Person, AttendanceRecord } from '@/lib/face-api';
-import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon } from 'lucide-react';
+import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, Clock10Icon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -15,6 +15,16 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
+  const [darkMode, setDarkMode] = useState(true);
+
+  useEffect(() => {
+    // Apply dark mode
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     const initializePage = async () => {
@@ -51,23 +61,53 @@ const Index = () => {
     toast.success(`Marked ${person.name} as ${status}`);
   };
 
+  const handleQuickRegister = () => {
+    setShowRegisterForm(true);
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
       <div className="container mx-auto py-8 px-4">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold">Attendance Management System</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">Attendance Management System</h1>
+          <p className="text-muted-foreground mt-2 dark:text-gray-400">
             Track and manage attendance in real-time
           </p>
         </header>
 
+        <div className="mb-6">
+          <Card className="bg-card dark:bg-gray-800 border-border dark:border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <UserCheckIcon className="h-6 w-6 text-accent dark:text-blue-400" />
+                  <div>
+                    <h3 className="font-medium text-foreground dark:text-white">Quick Attendance</h3>
+                    <p className="text-sm text-muted-foreground dark:text-gray-400">Mark attendance without navigating away</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="default" 
+                    className="bg-accent hover:bg-accent/90 dark:bg-blue-600 dark:hover:bg-blue-700"
+                    onClick={handleQuickRegister}
+                  >
+                    <UserPlusIcon className="mr-2 h-4 w-4" />
+                    New Attendance
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="attendance" onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="attendance" className="flex items-center">
+          <TabsList className="mb-6 bg-secondary dark:bg-gray-700">
+            <TabsTrigger value="attendance" className="flex items-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white">
               <CalendarIcon className="mr-2 h-4 w-4" />
               Attendance
             </TabsTrigger>
-            <TabsTrigger value="people" className="flex items-center">
+            <TabsTrigger value="people" className="flex items-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white">
               <Users className="mr-2 h-4 w-4" />
               People
             </TabsTrigger>
@@ -75,23 +115,23 @@ const Index = () => {
           
           <TabsContent value="attendance">
             <div className="grid grid-cols-1 gap-6">
-              <Card>
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center text-foreground dark:text-white">
                     <ListIcon className="mr-2 h-5 w-5" />
                     Attendance Records
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="dark:text-gray-400">
                     View and manage attendance records by date
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
                     <div className="flex justify-center items-center py-8">
-                      <p>Loading attendance data...</p>
+                      <p className="dark:text-gray-300">Loading attendance data...</p>
                     </div>
                   ) : (
-                    <AttendanceTable records={records} />
+                    <AttendanceTable records={records} className="dark:text-gray-300" />
                   )}
                 </CardContent>
               </Card>
@@ -101,34 +141,36 @@ const Index = () => {
           <TabsContent value="people">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {people.map(person => (
-                <Card key={person.id}>
+                <Card key={person.id} className="dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
                   <CardHeader>
-                    <CardTitle>{person.name}</CardTitle>
-                    <CardDescription>{person.role}</CardDescription>
+                    <CardTitle className="dark:text-white">{person.name}</CardTitle>
+                    <CardDescription className="dark:text-gray-400">{person.role}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-center mb-4">
-                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 rounded-full bg-muted dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                         {person.image ? (
                           <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
                         ) : (
-                          <UserIcon className="h-12 w-12 text-muted-foreground" />
+                          <UserIcon className="h-12 w-12 text-muted-foreground dark:text-gray-500" />
                         )}
                       </div>
                     </div>
                     <div className="flex justify-center space-x-2">
                       <Button 
                         size="sm" 
+                        className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700"
                         onClick={() => handleMarkAttendance(person, 'present')}
                       >
-                        Mark Present
+                        <UserCheckIcon className="mr-1 h-4 w-4" /> Present
                       </Button>
                       <Button 
                         size="sm" 
                         variant="secondary" 
+                        className="dark:bg-amber-600 dark:text-white dark:hover:bg-amber-700"
                         onClick={() => handleMarkAttendance(person, 'late')}
                       >
-                        Mark Late
+                        <Clock10Icon className="mr-1 h-4 w-4" /> Late
                       </Button>
                     </div>
                   </CardContent>
@@ -137,8 +179,11 @@ const Index = () => {
               
               {people.length === 0 && !isLoading && (
                 <div className="col-span-full text-center py-8">
-                  <p className="text-muted-foreground mb-4">No registered people yet</p>
-                  <Button onClick={() => setShowRegisterForm(true)}>
+                  <p className="text-muted-foreground dark:text-gray-400 mb-4">No registered people yet</p>
+                  <Button 
+                    onClick={() => setShowRegisterForm(true)}
+                    className="dark:bg-blue-600 dark:hover:bg-blue-700"
+                  >
                     Register New Person
                   </Button>
                 </div>
@@ -150,7 +195,7 @@ const Index = () => {
         {/* Register New Person - Action Button */}
         <div className="fixed bottom-8 right-8">
           <Button 
-            className="rounded-full w-12 h-12 p-0 shadow-lg"
+            className="rounded-full w-14 h-14 p-0 shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700"
             onClick={() => setShowRegisterForm(true)}
           >
             <UserPlusIcon className="h-6 w-6" />

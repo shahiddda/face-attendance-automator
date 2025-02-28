@@ -189,16 +189,9 @@ export const addSampleData = () => {
     people = [
       {
         id: 'person_1',
-        name: 'John Doe',
+        name: 'Shahid Inamdar',
         role: 'Employee',
         descriptors: [dummyDescriptor], 
-        image: '/placeholder.svg'
-      },
-      {
-        id: 'person_2',
-        name: 'Jane Smith',
-        role: 'Manager',
-        descriptors: [dummyDescriptor],
         image: '/placeholder.svg'
       }
     ];
@@ -208,14 +201,7 @@ export const addSampleData = () => {
       {
         id: 'attendance_1',
         personId: 'person_1',
-        personName: 'John Doe',
-        timestamp: new Date(Date.now() - 86400000), // Yesterday
-        status: 'present'
-      },
-      {
-        id: 'attendance_2',
-        personId: 'person_2',
-        personName: 'Jane Smith',
+        personName: 'Shahid Inamdar',
         timestamp: new Date(Date.now() - 86400000), // Yesterday
         status: 'present'
       }
