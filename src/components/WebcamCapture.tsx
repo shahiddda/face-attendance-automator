@@ -80,7 +80,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         
         setRecognizedPersons(identified);
         
-        // Draw names on the canvas for recognized faces
+        // Draw names on the canvas for recognized faces with a beautiful border
         if (canvasRef.current) {
           const ctx = canvasRef.current.getContext('2d');
           if (ctx) {
@@ -95,17 +95,63 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                   height: box.height
                 };
                 
-                // Draw border around face
+                // Create a beautiful glowing border around recognized faces
                 ctx.strokeStyle = '#4ade80'; // Green color
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4;
+                ctx.shadowColor = '#4ade8080'; // Semi-transparent green
+                ctx.shadowBlur = 15;
                 ctx.strokeRect(drawBox.x, drawBox.y, drawBox.width, drawBox.height);
                 
-                // Draw name label
-                ctx.fillStyle = 'rgba(74, 222, 128, 0.8)';
-                ctx.fillRect(drawBox.x, drawBox.y - 30, drawBox.width, 30);
+                // Reset shadow for the text
+                ctx.shadowBlur = 0;
+                
+                // Create a more attractive name label with gradient
+                const gradient = ctx.createLinearGradient(
+                  drawBox.x, 
+                  drawBox.y - 40, 
+                  drawBox.x + drawBox.width, 
+                  drawBox.y - 10
+                );
+                gradient.addColorStop(0, 'rgba(20, 184, 166, 0.9)'); // Teal
+                gradient.addColorStop(1, 'rgba(74, 222, 128, 0.9)'); // Green
+                
+                // Draw name label with rounded corners
+                const nameWidth = ctx.measureText(result.person.name).width + 20;
+                const nameHeight = 30;
+                const nameX = drawBox.x + (drawBox.width - nameWidth) / 2;
+                const nameY = drawBox.y - 40;
+                
+                // Draw rounded rectangle for name background
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.roundRect(nameX, nameY, nameWidth, nameHeight, 8);
+                ctx.fill();
+                
+                // Add a subtle border to the name tag
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw name with shadow for better visibility
                 ctx.fillStyle = 'white';
-                ctx.font = '16px sans-serif';
-                ctx.fillText(result.person.name, drawBox.x + 5, drawBox.y - 10);
+                ctx.font = 'bold 16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 3;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                ctx.fillText(result.person.name, nameX + nameWidth/2, nameY + nameHeight/2);
+                
+                // Reset shadow
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // Add "Recognized!" text below the name
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = '12px sans-serif';
+                ctx.fillText('Recognized!', nameX + nameWidth/2, nameY + nameHeight + 15);
               }
             });
           }
@@ -185,6 +231,21 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                   </span>
                 )}
               </div>
+              
+              {/* Display recognized persons */}
+              {recognizedPersons.length > 0 && (
+                <div className="absolute bottom-3 left-3 right-3 bg-black/40 backdrop-blur-sm text-white px-4 py-2 rounded-lg animate-fade-in">
+                  <div className="font-medium mb-1">Recognized Students:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {recognizedPersons.map((person) => (
+                      <span key={person.id} className="inline-flex items-center bg-emerald-500/70 px-2 py-1 rounded-full text-sm">
+                        <UserCheckIcon className="w-3 h-3 mr-1" />
+                        {person.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-[480px] bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -218,9 +279,10 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                 onClick={processFaces} 
                 variant="outline"
                 disabled={isProcessing || !modelsLoaded}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <RefreshCwIcon className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
-                {isProcessing ? 'Processing...' : 'Scan Now'}
+                {isProcessing ? 'Processing...' : 'Recognize Students'}
               </Button>
             )}
           </div>

@@ -101,17 +101,15 @@ export const recognizeFaces = async (
     return detections.map(detection => ({ person: null, detection }));
   }
   
-  // Instead of always using the first person, randomly select any person from our database
-  // This simulates more realistic recognition behavior
-  const randomIndex = Math.floor(Math.random() * people.length);
-  const randomPerson = people[randomIndex];
-  
-  // Randomly decide if we should recognize or not (for demo effect)
-  const shouldRecognize = Math.random() > 0.3; // 70% chance to recognize
+  // For demo purposes: We'll improve the recognition rate for existing students
+  // In a real app, this would use actual face recognition algorithms
+  const recognitionProbability = 0.85; // 85% chance to recognize existing students
   
   return detections.map(detection => {
-    if (shouldRecognize) {
-      return { person: randomPerson, detection };
+    if (Math.random() < recognitionProbability && people.length > 0) {
+      // Randomly select a person from our database for the demo
+      const randomIndex = Math.floor(Math.random() * people.length);
+      return { person: people[randomIndex], detection };
     } else {
       return { person: null, detection };
     }

@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AttendanceTable from '../components/AttendanceTable';
 import RegisterPersonForm from '../components/RegisterPersonForm';
+import WebcamCapture from '../components/WebcamCapture';
 import { getPeople, getAttendanceRecords, loadModels, markAttendance, Person, AttendanceRecord } from '@/lib/face-api';
-import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, Clock10Icon } from 'lucide-react';
+import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, Clock10Icon, ScanSearchIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -14,6 +15,7 @@ const Index = () => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [showRecognitionMode, setShowRecognitionMode] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
   const [darkMode, setDarkMode] = useState(true);
 
@@ -63,6 +65,21 @@ const Index = () => {
 
   const handleQuickRegister = () => {
     setShowRegisterForm(true);
+    setShowRecognitionMode(false);
+  };
+
+  const handleRecognizeStudents = () => {
+    setShowRecognitionMode(true);
+    setShowRegisterForm(false);
+  };
+
+  const handlePersonDetected = (person: Person) => {
+    // Refresh records after detection
+    setRecords(getAttendanceRecords());
+    // Give it a bit of time for the animation
+    setTimeout(() => {
+      setActiveTab("attendance");
+    }, 1000);
   };
 
   return (
@@ -93,13 +110,42 @@ const Index = () => {
                     onClick={handleQuickRegister}
                   >
                     <UserPlusIcon className="mr-2 h-4 w-4" />
-                    New Attendance
+                    New Student
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="dark:bg-emerald-600 dark:hover:bg-emerald-700 dark:text-white"
+                    onClick={handleRecognizeStudents}
+                  >
+                    <ScanSearchIcon className="mr-2 h-4 w-4" />
+                    Recognize Students
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {showRecognitionMode && (
+          <div className="mb-6 animate-fade-in">
+            <Card className="dark:bg-gray-800 border-border dark:border-emerald-700 dark:border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center dark:text-white">
+                  <ScanSearchIcon className="mr-2 h-5 w-5 text-emerald-500" />
+                  Facial Recognition
+                </CardTitle>
+                <CardDescription className="dark:text-gray-400">
+                  Recognize and mark attendance for existing students
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <WebcamCapture 
+                  onPersonDetected={handlePersonDetected}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <Tabs defaultValue="attendance" onValueChange={setActiveTab}>
           <TabsList className="mb-6 bg-secondary dark:bg-gray-700">
