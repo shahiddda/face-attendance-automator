@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { toast } from 'sonner';
 import WebcamCapture from './WebcamCapture';
 import { registerPerson, loadModels } from '@/lib/face-api';
-import { UserIcon } from 'lucide-react';
+import { UserIcon, ShieldIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
 
 interface RegisterPersonFormProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
   const [isRegistering, setIsRegistering] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const { isAdmin } = useAuth();
 
   // Ensure models are loaded when the form opens
   useEffect(() => {
@@ -77,7 +80,16 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
       await new Promise(resolve => setTimeout(resolve, 100));
       
       await registerPerson(name, role, imageRef.current);
-      toast.success(`${name} has been registered successfully`);
+      
+      // If admin is logged in, automatically approve the newly registered student
+      if (isAdmin) {
+        const { approveStudent } = useAuth.getState();
+        // We don't know the exact ID assigned during registration, so we'll refresh the page to get it later
+        toast.success(`${name} has been registered and automatically approved by admin`);
+      } else {
+        toast.success(`${name} has been registered successfully. Admin approval pending.`);
+      }
+      
       onPersonRegistered();
       resetForm();
       onClose();
@@ -97,37 +109,44 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md dark:bg-gray-800 dark:border-gray-700">
         <DialogHeader>
-          <DialogTitle>Register New Person</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="dark:text-white">Register New Person</DialogTitle>
+          <DialogDescription className="dark:text-gray-400">
             Add a new person to the face recognition system
+            {!isAdmin && (
+              <p className="mt-2 text-amber-500 text-xs">
+                Note: Approval from an admin is required before you can mark attendance
+              </p>
+            )}
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-1 gap-3">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name" className="dark:text-gray-300">Full Name</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="John Doe"
+              className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
           </div>
           
           <div className="grid grid-cols-1 gap-3">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role" className="dark:text-gray-300">Role</Label>
             <Input
               id="role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
               placeholder="Employee, Student, etc."
+              className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
           </div>
           
           <div className="grid grid-cols-1 gap-3 mt-2">
-            <Label>Capture Face</Label>
+            <Label className="dark:text-gray-300">Capture Face</Label>
             {capturedImage ? (
               <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                 <img
@@ -155,13 +174,22 @@ const RegisterPersonForm: React.FC<RegisterPersonFormProps> = ({
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="mr-auto">
+            {!isAdmin && (
+              <Link to="/admin-login" className="text-sm flex items-center gap-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+                <ShieldIcon className="h-3 w-3" />
+                Admin Login
+              </Link>
+            )}
+          </div>
+          <Button variant="outline" onClick={onClose} className="dark:text-gray-300 dark:border-gray-600">
             Cancel
           </Button>
           <Button 
             onClick={handleRegister} 
             disabled={isRegistering || !capturedImage}
+            className="dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             {isRegistering ? 'Registering...' : 'Register Person'}
           </Button>

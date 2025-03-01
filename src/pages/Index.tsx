@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,10 @@ import RegisterPersonForm from '../components/RegisterPersonForm';
 import WebcamCapture from '../components/WebcamCapture';
 import AttendanceAnalysis from '../components/AttendanceAnalysis';
 import { getPeople, getAttendanceRecords, loadModels, markAttendance, Person, AttendanceRecord } from '@/lib/face-api';
-import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, BarChart2Icon } from 'lucide-react';
+import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, BarChart2Icon, ShieldIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
 
 const Index = () => {
   const [people, setPeople] = useState<Person[]>([]);
@@ -19,6 +22,8 @@ const Index = () => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
   const [darkMode, setDarkMode] = useState(true);
+  const { isAdmin, isStudentApproved } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Apply dark mode
@@ -55,9 +60,18 @@ const Index = () => {
     console.log("Person registered, refreshing people list");
     // Refresh people list
     setPeople(getPeople());
+    toast.info('New student registration needs admin approval before they can mark attendance');
   };
 
   const handleMarkAttendance = (person: Person, status: 'present' | 'late' | 'absent' = 'present') => {
+    // Check if student is approved to mark attendance
+    if (!isStudentApproved(person.id)) {
+      toast.error(`${person.name} is not approved to mark attendance`, {
+        description: "Contact an administrator for approval."
+      });
+      return;
+    }
+    
     const result = markAttendance(person.id, person.name, status);
     if (result.success) {
       setRecords(getAttendanceRecords());
@@ -70,6 +84,14 @@ const Index = () => {
   };
 
   const handleQuickRegister = () => {
+    // If admin is not logged in and registrations require admin approval,
+    // inform the user about the admin requirement
+    if (!isAdmin) {
+      toast.info("Your registration will require admin approval before you can mark attendance.", {
+        description: "Contact an administrator after registration."
+      });
+    }
+    
     setShowRegisterForm(true);
     setShowRecognitionMode(false);
     setShowAnalysis(false);
@@ -88,6 +110,14 @@ const Index = () => {
   };
 
   const handlePersonDetected = (person: Person) => {
+    // Check approval before marking attendance
+    if (!isStudentApproved(person.id)) {
+      toast.error(`${person.name} is not approved to mark attendance`, {
+        description: "Contact an administrator for approval."
+      });
+      return;
+    }
+    
     // Refresh records after detection
     setRecords(getAttendanceRecords());
     // Give it a bit of time for the animation
@@ -106,11 +136,35 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
       <div className="container mx-auto py-8 px-4">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground dark:text-white">Attendance Management System</h1>
-          <p className="text-muted-foreground mt-2 dark:text-gray-400">
-            Track and manage attendance in real-time
-          </p>
+        <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">Attendance Management System</h1>
+            <p className="text-muted-foreground mt-2 dark:text-gray-400">
+              Track and manage attendance in real-time
+            </p>
+          </div>
+          
+          <div className="mt-4 md:mt-0 flex items-center gap-3">
+            {isAdmin ? (
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={() => navigate('/admin-dashboard')}
+              >
+                <ShieldIcon className="h-4 w-4" />
+                Admin Dashboard
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={() => navigate('/admin-login')}
+              >
+                <ShieldIcon className="h-4 w-4" />
+                Admin Login
+              </Button>
+            )}
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

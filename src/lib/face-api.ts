@@ -1,5 +1,6 @@
 
 import * as faceapi from 'face-api.js';
+import { useAuth } from './auth';
 
 // Initialize models
 let modelsLoaded = false;
@@ -229,5 +230,15 @@ export const addSampleData = () => {
         status: 'present'
       }
     ];
+    
+    // In a real application, we would retrieve the approved students from a database
+    // For our mock implementation, we'll use the auth store to approve this sample student
+    setTimeout(() => {
+      const auth = useAuth.getState();
+      if (auth && auth.approveStudent) {
+        auth.approveStudent('person_1');
+        console.log("Auto-approved sample student for demonstration");
+      }
+    }, 1000);
   }
 };
