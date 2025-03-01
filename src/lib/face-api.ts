@@ -1,4 +1,3 @@
-
 import * as faceapi from 'face-api.js';
 import { useAuth } from './auth';
 
@@ -27,7 +26,7 @@ let attendanceRecords: AttendanceRecord[] = [];
 
 // Track last attendance time for each person to prevent multiple records in short time
 const lastAttendanceTime: Record<string, number> = {};
-const ATTENDANCE_COOLDOWN_MS = 30000; // 30 seconds cooldown
+const ATTENDANCE_COOLDOWN_MS = 10000; // Changed from 30000 to 10000 (10 seconds cooldown)
 
 // Mock implementation that doesn't require external models
 export const loadModels = async () => {
