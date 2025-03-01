@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -301,6 +300,13 @@ const Index = () => {
             </Card>
           </div>
         )}
+
+        {/* Watermark */}
+        <div className="mt-12 text-center opacity-60 text-sm text-muted-foreground dark:text-gray-500">
+          <p className="font-light italic">
+            Project developed by <span className="font-medium">Shahid Inamdar</span> and <span className="font-medium">Saloni Upaskar</span>
+          </p>
+        </div>
       </div>
     </div>
   );
