@@ -26,8 +26,8 @@ const App = () => (
         </Routes>
       </BrowserRouter>
       
-      {/* Watermark */}
-      <div className="fixed bottom-4 right-4 opacity-60 rotate-[-8deg] text-xs text-gray-500 dark:text-gray-400 pointer-events-none select-none z-50">
+      {/* Watermark - removed rotation */}
+      <div className="fixed bottom-4 right-4 opacity-60 text-xs text-gray-500 dark:text-gray-400 pointer-events-none select-none z-50">
         <div className="bg-white/30 dark:bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
           <p className="font-light">
             Developed by 
