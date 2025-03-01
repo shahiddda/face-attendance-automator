@@ -2,8 +2,11 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { AttendanceRecord } from '@/lib/face-api';
-import { CalendarIcon, UserIcon, ClockIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AttendanceRecord, exportAttendanceToExcel } from '@/lib/face-api';
+import { CalendarIcon, UserIcon, ClockIcon, DownloadIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 interface AttendanceTableProps {
   records: AttendanceRecord[];
@@ -22,8 +25,52 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, className = 
     groupedRecords[date].push(record);
   });
 
+  const handleExportToExcel = () => {
+    if (records.length === 0) {
+      toast.error('No attendance records to export');
+      return;
+    }
+
+    try {
+      // Format records for Excel export
+      const excelData = records.map(record => ({
+        'Student ID': record.personId,
+        'Student Name': record.personName,
+        'Date': new Date(record.timestamp).toLocaleDateString(),
+        'Time': new Date(record.timestamp).toLocaleTimeString(),
+        'Status': record.status.charAt(0).toUpperCase() + record.status.slice(1)
+      }));
+      
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Records');
+      
+      // Generate Excel file
+      XLSX.writeFile(workbook, `attendance_records_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      toast.success('Attendance records exported to Excel', {
+        description: `File downloaded: attendance_records_${new Date().toISOString().split('T')[0]}.xlsx`
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export attendance records');
+    }
+  };
+
   return (
     <div className={`w-full overflow-auto ${className}`}>
+      <div className="flex justify-end mb-4">
+        <Button 
+          onClick={handleExportToExcel} 
+          variant="outline" 
+          className="flex items-center gap-2"
+        >
+          <DownloadIcon className="h-4 w-4" />
+          Export to Excel
+        </Button>
+      </div>
+      
       {Object.keys(groupedRecords).length > 0 ? (
         Object.entries(groupedRecords).map(([date, dateRecords]) => (
           <div key={date} className="mb-6">

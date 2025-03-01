@@ -135,17 +135,15 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
               className="absolute top-0 left-0 w-full h-full pointer-events-none"
             />
             
-            {/* Detected person name display */}
-            {detectedPersonName && (
-              <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm text-white p-2 rounded-md flex items-center justify-between">
-                <span className="text-lg font-medium">
-                  {detectedPersonName}
-                </span>
-                {!detectedPersonName.includes('Not Approved') && !detectedPersonName.includes('Cooldown') && (
-                  <span className="inline-flex h-3 w-3 rounded-full bg-green-500 animate-pulse" />
-                )}
-              </div>
-            )}
+            {/* Detected person name display - moved to bottom info panel */}
+            <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm text-white p-2 rounded-md flex items-center justify-between">
+              <span className="text-lg font-medium">
+                {detectedPersonName ? detectedPersonName : 'No person detected'}
+              </span>
+              {detectedPersonName && !detectedPersonName.includes('Not Approved') && !detectedPersonName.includes('Cooldown') && (
+                <span className="inline-flex h-3 w-3 rounded-full bg-green-500 animate-pulse" />
+              )}
+            </div>
             
             {/* Buttons */}
             <div className="absolute bottom-4 right-4 flex gap-2">

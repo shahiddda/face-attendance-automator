@@ -1,3 +1,4 @@
+
 import * as faceapi from 'face-api.js';
 import { useAuth } from './auth';
 
@@ -69,11 +70,15 @@ export const detectFaces = async (
       canvas.width = width;
       canvas.height = height;
       
-      // Draw a mock detection box in the center
+      // Generate a random position for the detection box to simulate movement
+      // This creates the illusion that the box is following the face
+      const centerX = width / 2 + (Math.random() * 30 - 15); // Add some random movement
+      const centerY = height / 2 + (Math.random() * 30 - 15); // Add some random movement
+      
       const boxWidth = width / 3;
       const boxHeight = height / 3;
-      const boxX = (width - boxWidth) / 2;
-      const boxY = (height - boxHeight) / 2;
+      const boxX = centerX - boxWidth / 2;
+      const boxY = centerY - boxHeight / 2;
       
       ctx.strokeStyle = '#4ade80';
       ctx.lineWidth = 3;
@@ -199,6 +204,25 @@ export const getAttendanceRecords = (): AttendanceRecord[] => {
 
 export const getPeople = (): Person[] => {
   return [...people];
+};
+
+// Function to export attendance records to Excel
+export const exportAttendanceToExcel = () => {
+  if (attendanceRecords.length === 0) {
+    console.log('No attendance records to export');
+    return null;
+  }
+  
+  // Format records for Excel export
+  const formattedRecords = attendanceRecords.map(record => ({
+    'Student ID': record.personId,
+    'Student Name': record.personName,
+    'Date': new Date(record.timestamp).toLocaleDateString(),
+    'Time': new Date(record.timestamp).toLocaleTimeString(),
+    'Status': record.status.charAt(0).toUpperCase() + record.status.slice(1)
+  }));
+  
+  return formattedRecords;
 };
 
 // For demonstration purposes, we'll add some sample data
