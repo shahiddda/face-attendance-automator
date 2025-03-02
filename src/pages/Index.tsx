@@ -1,14 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AttendanceTable from '../components/AttendanceTable';
 import RegisterPersonForm from '../components/RegisterPersonForm';
 import WebcamCapture from '../components/WebcamCapture';
 import AttendanceAnalysis from '../components/AttendanceAnalysis';
 import { getPeople, getAttendanceRecords, loadModels, markAttendance, Person, AttendanceRecord } from '@/lib/face-api';
-import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, BarChart2Icon, ShieldIcon } from 'lucide-react';
+import { UserPlusIcon, Users, CalendarIcon, ListIcon, UserIcon, UserCheckIcon, BarChart2Icon, ShieldIcon, FileTextIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
@@ -22,11 +25,16 @@ const Index = () => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
   const [darkMode, setDarkMode] = useState(true);
-  const { isAdmin, isStudentApproved } = useAuth();
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Person | null>(null);
+  const [leaveReason, setLeaveReason] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  
+  const { isAdmin, isStudentApproved, requestLeave, getStudentLeaveRequests } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Apply dark mode
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -38,11 +46,9 @@ const Index = () => {
     const initializePage = async () => {
       setIsLoading(true);
       try {
-        // Initialize face-api models
         console.log("Initializing face-api models");
         await loadModels();
         
-        // Get people and attendance records
         setPeople(getPeople());
         setRecords(getAttendanceRecords());
       } catch (error) {
@@ -58,13 +64,11 @@ const Index = () => {
 
   const handlePersonRegistered = () => {
     console.log("Person registered, refreshing people list");
-    // Refresh people list
     setPeople(getPeople());
     toast.info('New student registration needs admin approval before they can mark attendance');
   };
 
   const handleMarkAttendance = (person: Person, status: 'present' | 'late' | 'absent' = 'present') => {
-    // Check if student is approved to mark attendance
     if (!isStudentApproved(person.id)) {
       toast.error(`${person.name} is not approved to mark attendance`, {
         description: "Contact an administrator for approval."
@@ -84,8 +88,6 @@ const Index = () => {
   };
 
   const handleQuickRegister = () => {
-    // If admin is not logged in and registrations require admin approval,
-    // inform the user about the admin requirement
     if (!isAdmin) {
       toast.info("Your registration will require admin approval before you can mark attendance.", {
         description: "Contact an administrator after registration."
@@ -110,7 +112,6 @@ const Index = () => {
   };
 
   const handlePersonDetected = (person: Person) => {
-    // Check approval before marking attendance
     if (!isStudentApproved(person.id)) {
       toast.error(`${person.name} is not approved to mark attendance`, {
         description: "Contact an administrator for approval."
@@ -118,19 +119,55 @@ const Index = () => {
       return;
     }
     
-    // Refresh records after detection
     setRecords(getAttendanceRecords());
-    // Give it a bit of time for the animation
     setTimeout(() => {
       setActiveTab("attendance");
     }, 1000);
   };
 
-  // Reset all panels display
   const handleResetDisplay = () => {
     setShowRecognitionMode(false);
     setShowRegisterForm(false);
     setShowAnalysis(false);
+  };
+
+  const handleOpenLeaveForm = (person: Person) => {
+    setSelectedStudent(person);
+    setShowLeaveForm(true);
+  };
+
+  const handleCloseLeaveForm = () => {
+    setShowLeaveForm(false);
+    setSelectedStudent(null);
+    setLeaveReason('');
+    setFromDate('');
+    setToDate('');
+  };
+
+  const handleSubmitLeaveRequest = () => {
+    if (!selectedStudent) {
+      toast.error("No student selected");
+      return;
+    }
+    
+    if (!leaveReason || !fromDate || !toDate) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    
+    const requestId = requestLeave(
+      selectedStudent.id,
+      selectedStudent.name,
+      leaveReason,
+      fromDate,
+      toDate
+    );
+    
+    toast.success("Leave request submitted successfully", {
+      description: "An administrator will review your request."
+    });
+    
+    handleCloseLeaveForm();
   };
 
   return (
@@ -167,8 +204,7 @@ const Index = () => {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Mark Attendance Card */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card 
             className="dark:bg-gray-800 border-border dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
             onClick={handleRecognizeStudents}
@@ -192,7 +228,6 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Add New Student Card */}
           <Card 
             className="dark:bg-gray-800 border-border dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
             onClick={handleQuickRegister}
@@ -216,7 +251,6 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Analyze Attendance Card */}
           <Card 
             className="dark:bg-gray-800 border-border dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
             onClick={handleShowAnalysis}
@@ -239,9 +273,60 @@ const Index = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <Card 
+            className="dark:bg-gray-800 border-border dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-foreground dark:text-white">
+                <CalendarIcon className="mr-2 h-6 w-6 text-orange-500" />
+                Request Leave
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground dark:text-gray-400 mb-4">
+                Submit a leave request to be approved by administrators
+              </p>
+              <div className="w-full">
+                {people.length > 0 ? (
+                  <select 
+                    className="w-full p-2 bg-background dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md mb-2 text-foreground dark:text-gray-200"
+                    onChange={(e) => {
+                      const selectedPerson = people.find(p => p.id === e.target.value);
+                      if (selectedPerson) {
+                        handleOpenLeaveForm(selectedPerson);
+                      }
+                    }}
+                    value=""
+                  >
+                    <option value="" disabled>Select your name</option>
+                    {people.map(person => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-center dark:text-gray-400 mb-2">
+                    No students registered yet
+                  </p>
+                )}
+                <Button 
+                  className="w-full dark:bg-orange-600 dark:hover:bg-orange-700"
+                  disabled={people.length === 0}
+                  onClick={() => {
+                    if (people.length > 0) {
+                      toast.info("Please select your name from the dropdown");
+                    }
+                  }}
+                >
+                  Request Leave
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Active Panel Section */}
         {showRecognitionMode && (
           <div className="mb-6 animate-fade-in">
             <Card className="dark:bg-gray-800 border-border dark:border-green-700 dark:border-2">
@@ -329,7 +414,6 @@ const Index = () => {
           </div>
         )}
 
-        {/* Only show attendance table if no other panel is active */}
         {!showRecognitionMode && !showRegisterForm && !showAnalysis && (
           <div className="animate-fade-in">
             <Card className="dark:bg-gray-800 dark:border-gray-700">
@@ -355,7 +439,74 @@ const Index = () => {
           </div>
         )}
 
-        {/* Watermark */}
+        <Dialog open={showLeaveForm} onOpenChange={setShowLeaveForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Request Leave</DialogTitle>
+              <DialogDescription>
+                Submit a leave request that will be reviewed by administrators.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                    <img 
+                      src={selectedStudent.image} 
+                      alt={selectedStudent.name} 
+                      className="h-full w-full object-cover"
+                      onError={(e) => (e.currentTarget.src = '/placeholder.svg')}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-medium dark:text-white">{selectedStudent.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedStudent.role}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fromDate">From Date</Label>
+                    <Input 
+                      id="fromDate" 
+                      type="date" 
+                      value={fromDate} 
+                      onChange={(e) => setFromDate(e.target.value)} 
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="toDate">To Date</Label>
+                    <Input 
+                      id="toDate" 
+                      type="date" 
+                      value={toDate} 
+                      onChange={(e) => setToDate(e.target.value)} 
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="reason">Reason for Leave</Label>
+                  <Textarea 
+                    id="reason" 
+                    placeholder="Explain your reason for requesting leave..." 
+                    value={leaveReason} 
+                    onChange={(e) => setLeaveReason(e.target.value)} 
+                    required
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseLeaveForm}>Cancel</Button>
+              <Button onClick={handleSubmitLeaveRequest}>Submit Request</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="mt-12 text-center opacity-60 text-sm text-muted-foreground dark:text-gray-500">
           <p className="font-light italic">
             Project developed by <span className="font-medium">Shahid Inamdar</span> and <span className="font-medium">Saloni Upaskar</span>

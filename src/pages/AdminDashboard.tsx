@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { getPeople, Person, getAttendanceRecords, AttendanceRecord } from '@/lib/face-api';
-import { CheckCircleIcon, UserCheckIcon, UserXIcon, ShieldIcon, LogOutIcon, UserPlusIcon } from 'lucide-react';
+import { CheckCircleIcon, UserCheckIcon, UserXIcon, ShieldIcon, LogOutIcon, UserPlusIcon, CalendarIcon, CheckIcon, XIcon } from 'lucide-react';
 import AttendanceTable from '@/components/AttendanceTable';
 import RegisterPersonForm from '@/components/RegisterPersonForm';
 
@@ -17,7 +17,16 @@ const AdminDashboard = () => {
   const [people, setPeople] = useState<Person[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
-  const { isAdmin, logout, approveStudent, revokeStudentApproval, isStudentApproved } = useAuth();
+  const { 
+    isAdmin, 
+    logout, 
+    approveStudent, 
+    revokeStudentApproval, 
+    isStudentApproved,
+    leaveRequests,
+    approveLeaveRequest,
+    rejectLeaveRequest
+  } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if not admin
@@ -57,6 +66,16 @@ const AdminDashboard = () => {
     setPeople(getPeople());
     setShowRegisterForm(false);
     toast.success('New student registered successfully');
+  };
+
+  const handleApproveLeave = (requestId: string, studentName: string) => {
+    approveLeaveRequest(requestId);
+    toast.success(`Leave request approved for ${studentName}`);
+  };
+
+  const handleRejectLeave = (requestId: string, studentName: string) => {
+    rejectLeaveRequest(requestId);
+    toast.info(`Leave request rejected for ${studentName}`);
   };
 
   if (!isAdmin) {
@@ -148,6 +167,7 @@ const AdminDashboard = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="students">Manage Students</TabsTrigger>
             <TabsTrigger value="attendance">Recent Attendance</TabsTrigger>
+            <TabsTrigger value="leave">Leave Requests</TabsTrigger>
           </TabsList>
           
           <TabsContent value="students">
@@ -214,6 +234,89 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <AttendanceTable records={records} className="dark:text-gray-300" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="leave">
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center text-foreground dark:text-white">
+                  <CalendarIcon className="mr-2 h-5 w-5 text-orange-500" />
+                  Student Leave Requests
+                </CardTitle>
+                <CardDescription className="dark:text-gray-400">
+                  Manage leave requests from students
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {leaveRequests.length === 0 ? (
+                  <div className="text-center py-8 dark:text-gray-300">
+                    <p>No leave requests at the moment</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {leaveRequests.map((request) => (
+                      <div 
+                        key={request.id} 
+                        className={`p-4 rounded-lg border ${
+                          request.status === 'approved' 
+                            ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20' 
+                            : request.status === 'rejected'
+                            ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
+                            : 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20'
+                        }`}
+                      >
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium dark:text-white">{request.studentName}</h3>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                request.status === 'pending' 
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300' 
+                                  : request.status === 'approved'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+                              }`}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                              From: {new Date(request.fromDate).toLocaleDateString()} - To: {new Date(request.toDate).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm dark:text-gray-300 mb-1">
+                              <span className="font-medium">Reason:</span> {request.reason}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Requested on: {new Date(request.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          
+                          {request.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                className="flex items-center gap-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/20"
+                                onClick={() => handleApproveLeave(request.id, request.studentName)}
+                              >
+                                <CheckIcon className="h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="flex items-center gap-1 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                                onClick={() => handleRejectLeave(request.id, request.studentName)}
+                              >
+                                <XIcon className="h-4 w-4" />
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
