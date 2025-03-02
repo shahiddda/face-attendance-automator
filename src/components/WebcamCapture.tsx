@@ -3,9 +3,12 @@ import React, { useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { detectFaces, recognizeFaces, markAttendance, getPeople, Person } from '@/lib/face-api';
+import { detectFaces, recognizeFaces, markAttendance, getPeople, Person, AttendanceRecord } from '@/lib/face-api';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Calendar, Clock } from 'lucide-react';
 
 const videoConstraints = {
   width: 1280,
@@ -32,6 +35,10 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   const [captureMode, setCaptureMode] = useState(onRegisterMode);
   const { isStudentApproved } = useAuth();
   
+  // New states for attendance confirmation popup
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [attendanceRecord, setAttendanceRecord] = useState<AttendanceRecord | null>(null);
+  
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc && onCapture) {
@@ -43,7 +50,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   useEffect(() => {
     let detectionInterval: NodeJS.Timeout | null = null;
     
-    if (detectionActive && !captureMode) {
+    if (detectionActive && !captureMode && isCameraActive) {
       detectionInterval = setInterval(async () => {
         if (webcamRef.current && canvasRef.current) {
           try {
@@ -78,6 +85,14 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                     if (attendanceResult.success) {
                       setDetectedPersonName(person.name);
                       console.log(`Attendance marked for ${person.name}`);
+                      
+                      // Show confirmation popup and store attendance record
+                      setAttendanceRecord(attendanceResult.record);
+                      setShowConfirmation(true);
+                      
+                      // Turn off camera
+                      setIsCameraActive(false);
+                      setDetectionActive(false);
                       
                       // Notify parent component about detected person
                       if (onPersonDetected) {
@@ -116,7 +131,15 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         clearInterval(detectionInterval);
       }
     };
-  }, [detectionActive, captureMode, onPersonDetected, isStudentApproved]);
+  }, [detectionActive, captureMode, onPersonDetected, isStudentApproved, isCameraActive]);
+
+  // Handler to restart the camera after attendance is confirmed
+  const handleRestartCamera = () => {
+    setShowConfirmation(false);
+    setAttendanceRecord(null);
+    setIsCameraActive(true);
+    setDetectionActive(true);
+  };
 
   return (
     <div className="relative w-full">
@@ -184,6 +207,54 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
             : "Stand in front of the camera to mark your attendance. Approved students will be recognized automatically."}
         </p>
       </Card>
+
+      {/* Attendance Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Attendance Marked Successfully
+            </DialogTitle>
+            <DialogDescription>
+              Your attendance has been recorded in the system.
+            </DialogDescription>
+          </DialogHeader>
+
+          {attendanceRecord && (
+            <div className="p-4 border rounded-lg bg-background">
+              <div className="mb-4 text-xl font-bold">{attendanceRecord.personName}</div>
+              
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {new Date(attendanceRecord.timestamp).toLocaleDateString()}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {new Date(attendanceRecord.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Status:</span>
+                <Badge variant="default" className="capitalize">
+                  {attendanceRecord.status}
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleRestartCamera}>
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
