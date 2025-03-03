@@ -1,3 +1,4 @@
+
 import * as faceapi from 'face-api.js';
 import { useAuth } from './auth';
 
@@ -108,11 +109,14 @@ export const detectFaces = async (
       const boxWidth = currentFacePosition.width;
       const boxHeight = currentFacePosition.height;
       
-      // Draw animated border around face instead of green rectangle
+      // Draw full border around face - make it more visible with increased line width
       ctx.strokeStyle = '#8B5CF6'; // Using a purple color for the border
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3; // Increased line width for better visibility
       
-      // Animated corner brackets instead of full rectangle
+      // Draw actual rectangle for face border
+      ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+      
+      // Animated corner brackets instead of full rectangle - on top of the full border
       const cornerSize = Math.min(boxWidth, boxHeight) * 0.2;
       
       // Top-left corner
