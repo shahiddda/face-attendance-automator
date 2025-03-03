@@ -205,7 +205,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
             {recognitionInProgress && (
               <div className="absolute top-0 left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700">
                 <div 
-                  className="h-full bg-green-500 transition-all duration-300 ease-out"
+                  className="h-full bg-purple-500 transition-all duration-300 ease-out"
                   style={{ width: `${recognitionConfidence}%` }}
                 />
               </div>
@@ -215,7 +215,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
             <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm text-white p-2 rounded-md flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {recognitionInProgress && (
-                  <ScanFace className="h-5 w-5 text-green-400 animate-pulse" />
+                  <ScanFace className="h-5 w-5 text-purple-400 animate-pulse" />
                 )}
                 <span className="text-lg font-medium">
                   {detectedPersonName ? detectedPersonName : 'No person detected'}
@@ -223,7 +223,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
               </div>
               {detectedPersonName && !detectedPersonName.includes('Not Approved') && 
                !detectedPersonName.includes('Cooldown') && !detectedPersonName.includes('Recognizing') && (
-                <span className="inline-flex h-3 w-3 rounded-full bg-green-500 animate-pulse" />
+                <span className="inline-flex h-3 w-3 rounded-full bg-purple-500 animate-pulse" />
               )}
             </div>
             
@@ -231,10 +231,10 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
             {recognitionInProgress && (
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 border-4 border-transparent animate-pulse">
-                  <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-green-500"></div>
-                  <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-green-500"></div>
-                  <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-green-500"></div>
-                  <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-green-500"></div>
+                  <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-purple-500"></div>
+                  <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-purple-500"></div>
+                  <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-purple-500"></div>
+                  <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-purple-500"></div>
                 </div>
               </div>
             )}
@@ -245,7 +245,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                 <Button 
                   onClick={capture} 
                   variant="default" 
-                  className="bg-blue-500 hover:bg-blue-600"
+                  className="bg-purple-500 hover:bg-purple-600"
                 >
                   Capture
                 </Button>

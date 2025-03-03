@@ -51,6 +51,19 @@ export const createFaceDescriptor = async (imageElement: HTMLImageElement) => {
   return [mockDescriptor];
 };
 
+// Current face position tracking for smoother animations
+let currentFacePosition = {
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0
+};
+
+// Current recognized person for consistent identification
+let currentRecognizedPersonId = '';
+let recognitionStartTime = 0;
+const RECOGNITION_STABILITY_TIME = 3000; // Time in ms to maintain the same person recognition
+
 export const detectFaces = async (
   videoElement: HTMLVideoElement,
   canvas: HTMLCanvasElement | null
@@ -78,66 +91,76 @@ export const detectFaces = async (
       const phase = (now % 4000) / 4000; // Slow cycle for subtle movement
       const amplitude = 5; // Reduced random movement
       
-      const centerX = width / 2 + Math.sin(phase * Math.PI * 2) * amplitude;
-      const centerY = height / 2 + Math.cos(phase * Math.PI * 2) * amplitude;
+      // Create a smooth transition for face position
+      const targetX = width / 2 + Math.sin(phase * Math.PI * 2) * amplitude;
+      const targetY = height / 2 + Math.cos(phase * Math.PI * 2) * amplitude;
+      const targetWidth = width / 3;
+      const targetHeight = height / 3;
       
-      const boxWidth = width / 3;
-      const boxHeight = height / 3;
-      const boxX = centerX - boxWidth / 2;
-      const boxY = centerY - boxHeight / 2;
+      // Smooth movement - interpolate between current and target position
+      const smoothFactor = 0.2; // Lower = smoother movement
+      currentFacePosition.x = currentFacePosition.x * (1 - smoothFactor) + targetX * smoothFactor;
+      currentFacePosition.y = currentFacePosition.y * (1 - smoothFactor) + targetY * smoothFactor;
+      currentFacePosition.width = currentFacePosition.width * (1 - smoothFactor) + targetWidth * smoothFactor;
+      currentFacePosition.height = currentFacePosition.height * (1 - smoothFactor) + targetHeight * smoothFactor;
       
-      // Draw facial landmarks to improve visual feedback
-      ctx.strokeStyle = '#4ade80';
+      const boxX = currentFacePosition.x - currentFacePosition.width / 2;
+      const boxY = currentFacePosition.y - currentFacePosition.height / 2;
+      const boxWidth = currentFacePosition.width;
+      const boxHeight = currentFacePosition.height;
+      
+      // Draw animated border around face instead of green rectangle
+      ctx.strokeStyle = '#8B5CF6'; // Using a purple color for the border
       ctx.lineWidth = 3;
-      ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
       
-      // Draw eyes
-      const eyeSize = boxWidth / 10;
-      const eyeY = boxY + boxHeight * 0.3;
-      const leftEyeX = boxX + boxWidth * 0.3;
-      const rightEyeX = boxX + boxWidth * 0.7;
+      // Animated corner brackets instead of full rectangle
+      const cornerSize = Math.min(boxWidth, boxHeight) * 0.2;
       
+      // Top-left corner
       ctx.beginPath();
-      ctx.arc(leftEyeX, eyeY, eyeSize, 0, Math.PI * 2);
-      ctx.arc(rightEyeX, eyeY, eyeSize, 0, Math.PI * 2);
+      ctx.moveTo(boxX, boxY + cornerSize);
+      ctx.lineTo(boxX, boxY);
+      ctx.lineTo(boxX + cornerSize, boxY);
       ctx.stroke();
       
-      // Draw mouth
-      const mouthY = boxY + boxHeight * 0.7;
-      const mouthWidth = boxWidth * 0.4;
+      // Top-right corner
       ctx.beginPath();
-      ctx.moveTo(boxX + boxWidth * 0.3, mouthY);
-      ctx.bezierCurveTo(
-        boxX + boxWidth * 0.4, mouthY + boxHeight * 0.1,
-        boxX + boxWidth * 0.6, mouthY + boxHeight * 0.1,
-        boxX + boxWidth * 0.7, mouthY
-      );
+      ctx.moveTo(boxX + boxWidth - cornerSize, boxY);
+      ctx.lineTo(boxX + boxWidth, boxY);
+      ctx.lineTo(boxX + boxWidth, boxY + cornerSize);
       ctx.stroke();
       
+      // Bottom-left corner
+      ctx.beginPath();
+      ctx.moveTo(boxX, boxY + boxHeight - cornerSize);
+      ctx.lineTo(boxX, boxY + boxHeight);
+      ctx.lineTo(boxX + cornerSize, boxY + boxHeight);
+      ctx.stroke();
+      
+      // Bottom-right corner
+      ctx.beginPath();
+      ctx.moveTo(boxX + boxWidth - cornerSize, boxY + boxHeight);
+      ctx.lineTo(boxX + boxWidth, boxY + boxHeight);
+      ctx.lineTo(boxX + boxWidth, boxY + boxHeight - cornerSize);
+      ctx.stroke();
+            
       // Add "SCANNING" text for better UX
       ctx.font = '16px Arial';
-      ctx.fillStyle = '#4ade80';
+      ctx.fillStyle = '#8B5CF6';
       ctx.fillText('SCANNING...', boxX + boxWidth / 2 - 40, boxY - 10);
-    }
-    
-    // Create a unique descriptor based on the current camera frame
-    // This will help simulate recognizing different people
-    const uniqueDescriptor = new Float32Array(128);
-    for (let i = 0; i < 128; i++) {
-      uniqueDescriptor[i] = 0.5 + (Math.sin(Date.now() * 0.001 + i * 0.1) * 0.2);
     }
     
     // Return a more realistic detection result
     return [{
       detection: {
         box: {
-          x: videoElement.videoWidth / 3,
-          y: videoElement.videoHeight / 3,
-          width: videoElement.videoWidth / 3,
-          height: videoElement.videoHeight / 3
+          x: currentFacePosition.x - currentFacePosition.width / 2,
+          y: currentFacePosition.y - currentFacePosition.height / 2,
+          width: currentFacePosition.width,
+          height: currentFacePosition.height
         }
       },
-      descriptor: uniqueDescriptor
+      descriptor: new Float32Array(128).fill(0.5) // Consistent descriptor
     }];
   } catch (error) {
     console.error('Error in mock face detection:', error);
@@ -152,22 +175,33 @@ export const recognizeFaces = async (
     return detections.map(detection => ({ person: null, detection }));
   }
   
-  // Improved recognition logic - uses a more deterministic approach to select 
-  // different people based on time, to simulate recognizing different students
+  // Improved recognition logic - makes the recognition consistent for a period of time
   return detections.map(detection => {
-    // Instead of using random probability, we'll cycle through registered people
-    // based on time to create a more realistic demo where different people are recognized
-    const timeBasedIndex = Math.floor(Date.now() / 10000) % people.length;
+    const now = Date.now();
     
-    // Cycle through all registered people
-    const personToRecognize = people[timeBasedIndex];
-    
-    if (personToRecognize) {
-      console.log(`Recognizing: ${personToRecognize.name} (ID: ${personToRecognize.id})`);
-      return { person: personToRecognize, detection };
+    // If no person is currently being recognized or it's time to switch
+    if (!currentRecognizedPersonId || (now - recognitionStartTime > RECOGNITION_STABILITY_TIME)) {
+      // Cycle through registered people based on time
+      // This ensures we show different people over time but maintain stability
+      const newPersonIndex = Math.floor(now / RECOGNITION_STABILITY_TIME) % people.length;
+      const personToRecognize = people[newPersonIndex];
+      
+      if (personToRecognize) {
+        // Update the current recognized person and timestamp
+        currentRecognizedPersonId = personToRecognize.id;
+        recognitionStartTime = now;
+        console.log(`Recognizing: ${personToRecognize.name} (ID: ${personToRecognize.id})`);
+        return { person: personToRecognize, detection };
+      }
     } else {
-      return { person: null, detection };
+      // Continue recognizing the same person for stability
+      const currentPerson = people.find(p => p.id === currentRecognizedPersonId);
+      if (currentPerson) {
+        return { person: currentPerson, detection };
+      }
     }
+    
+    return { person: null, detection };
   });
 };
 
