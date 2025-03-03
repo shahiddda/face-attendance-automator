@@ -1,3 +1,4 @@
+
 import * as faceapi from 'face-api.js';
 import { useAuth } from './auth';
 
@@ -37,7 +38,7 @@ export const loadModels = async () => {
   return true;
 };
 
-export const createFaceDescriptor = async (imageElement: HTMLImageElement): Promise<Float32Array[]> {
+export const createFaceDescriptor = async (imageElement: HTMLImageElement) => {
   // Create a more consistent descriptor for better recognition
   const mockDescriptor = new Float32Array(128);
   // Generate deterministic values based on the image dimensions to simulate consistent recognition
