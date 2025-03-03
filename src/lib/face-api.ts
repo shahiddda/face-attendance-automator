@@ -1,4 +1,3 @@
-
 import * as faceapi from 'face-api.js';
 import { useAuth } from './auth';
 
@@ -175,29 +174,43 @@ export const recognizeFaces = async (
     return detections.map(detection => ({ person: null, detection }));
   }
   
-  // Improved recognition logic - makes the recognition consistent for a period of time
+  // Get the list of approved students
+  const { isStudentApproved } = useAuth.getState();
+  const approvedPeople = people.filter(person => isStudentApproved(person.id));
+  
+  // If no approved people, return null for all detections
+  if (approvedPeople.length === 0) {
+    console.log('No approved students found for recognition');
+    return detections.map(detection => ({ person: null, detection }));
+  }
+  
   return detections.map(detection => {
     const now = Date.now();
     
     // If no person is currently being recognized or it's time to switch
     if (!currentRecognizedPersonId || (now - recognitionStartTime > RECOGNITION_STABILITY_TIME)) {
-      // Cycle through registered people based on time
-      // This ensures we show different people over time but maintain stability
-      const newPersonIndex = Math.floor(now / RECOGNITION_STABILITY_TIME) % people.length;
-      const personToRecognize = people[newPersonIndex];
-      
-      if (personToRecognize) {
-        // Update the current recognized person and timestamp
-        currentRecognizedPersonId = personToRecognize.id;
-        recognitionStartTime = now;
-        console.log(`Recognizing: ${personToRecognize.name} (ID: ${personToRecognize.id})`);
-        return { person: personToRecognize, detection };
+      // Only use approved students for recognition
+      if (approvedPeople.length > 0) {
+        // Cycle through approved people based on time
+        const newPersonIndex = Math.floor(now / RECOGNITION_STABILITY_TIME) % approvedPeople.length;
+        const personToRecognize = approvedPeople[newPersonIndex];
+        
+        if (personToRecognize) {
+          // Update the current recognized person and timestamp
+          currentRecognizedPersonId = personToRecognize.id;
+          recognitionStartTime = now;
+          console.log(`Recognizing approved student: ${personToRecognize.name} (ID: ${personToRecognize.id})`);
+          return { person: personToRecognize, detection };
+        }
       }
     } else {
       // Continue recognizing the same person for stability
       const currentPerson = people.find(p => p.id === currentRecognizedPersonId);
-      if (currentPerson) {
+      if (currentPerson && isStudentApproved(currentPerson.id)) {
         return { person: currentPerson, detection };
+      } else {
+        // If current person is no longer approved, reset recognition
+        currentRecognizedPersonId = '';
       }
     }
     
