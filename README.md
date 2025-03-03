@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/1de20fc8-e744-40de-8efe-9ceb5a1f22e2
+**URL**: [https://lovable.dev/projects/1de20fc8-e744-40de-8efe-9ceb5a1f22e2](https://face-attendance-automator.lovable.app/)
 
 ## How can I edit this code?
 
