@@ -120,6 +120,13 @@ export const detectFaces = async (
       ctx.fillText('SCANNING...', boxX + boxWidth / 2 - 40, boxY - 10);
     }
     
+    // Create a unique descriptor based on the current camera frame
+    // This will help simulate recognizing different people
+    const uniqueDescriptor = new Float32Array(128);
+    for (let i = 0; i < 128; i++) {
+      uniqueDescriptor[i] = 0.5 + (Math.sin(Date.now() * 0.001 + i * 0.1) * 0.2);
+    }
+    
     // Return a more realistic detection result
     return [{
       detection: {
@@ -130,9 +137,7 @@ export const detectFaces = async (
           height: videoElement.videoHeight / 3
         }
       },
-      descriptor: people.length > 0 
-        ? [...people[0].descriptors][0]  // Use actual descriptor for better recognition
-        : new Float32Array(128).fill(0.5)
+      descriptor: uniqueDescriptor
     }];
   } catch (error) {
     console.error('Error in mock face detection:', error);
@@ -147,17 +152,19 @@ export const recognizeFaces = async (
     return detections.map(detection => ({ person: null, detection }));
   }
   
-  // Improved recognition logic with higher accuracy
-  const recognitionProbability = 0.95; // Increased from 0.85 to 0.95 for better reliability
-  
+  // Improved recognition logic - uses a more deterministic approach to select 
+  // different people based on time, to simulate recognizing different students
   return detections.map(detection => {
-    // Check if we should recognize an existing student
-    if (Math.random() < recognitionProbability && people.length > 0) {
-      // Use more deterministic selection instead of random for demo
-      // In a real app with actual face recognition, this would compare facial descriptors
-      const currentSecond = Math.floor(Date.now() / 1000);
-      const personIndex = currentSecond % people.length;
-      return { person: people[personIndex], detection };
+    // Instead of using random probability, we'll cycle through registered people
+    // based on time to create a more realistic demo where different people are recognized
+    const timeBasedIndex = Math.floor(Date.now() / 10000) % people.length;
+    
+    // Cycle through all registered people
+    const personToRecognize = people[timeBasedIndex];
+    
+    if (personToRecognize) {
+      console.log(`Recognizing: ${personToRecognize.name} (ID: ${personToRecognize.id})`);
+      return { person: personToRecognize, detection };
     } else {
       return { person: null, detection };
     }
@@ -279,18 +286,39 @@ export const addSampleData = () => {
       return descriptor;
     };
     
-    // This would typically come from a database
+    // Add multiple sample people instead of just one
     people = [
       {
         id: 'person_1',
         name: 'Shahid Inamdar',
-        role: 'Employee',
+        role: 'Student',
         descriptors: [createRealisticDescriptor()], 
+        image: '/placeholder.svg'
+      },
+      {
+        id: 'person_2',
+        name: 'Saloni Upaskar',
+        role: 'Student',
+        descriptors: [createRealisticDescriptor()],
+        image: '/placeholder.svg'
+      },
+      {
+        id: 'person_3',
+        name: 'Rajesh Kumar',
+        role: 'Student',
+        descriptors: [createRealisticDescriptor()],
+        image: '/placeholder.svg'
+      },
+      {
+        id: 'person_4',
+        name: 'Priya Sharma',
+        role: 'Student',
+        descriptors: [createRealisticDescriptor()],
         image: '/placeholder.svg'
       }
     ];
     
-    // Add some sample attendance records
+    // Add sample attendance records for the sample people
     attendanceRecords = [
       {
         id: 'attendance_1',
@@ -298,16 +326,26 @@ export const addSampleData = () => {
         personName: 'Shahid Inamdar',
         timestamp: new Date(Date.now() - 86400000), // Yesterday
         status: 'present'
+      },
+      {
+        id: 'attendance_2',
+        personId: 'person_2',
+        personName: 'Saloni Upaskar',
+        timestamp: new Date(Date.now() - 172800000), // 2 days ago
+        status: 'present'
       }
     ];
     
     // In a real application, we would retrieve the approved students from a database
-    // For our mock implementation, we'll use the auth store to approve this sample student
+    // For our mock implementation, we'll use the auth store to approve all sample students
     setTimeout(() => {
       const auth = useAuth.getState();
       if (auth && auth.approveStudent) {
-        auth.approveStudent('person_1');
-        console.log("Auto-approved sample student for demonstration");
+        // Approve all sample students
+        people.forEach(person => {
+          auth.approveStudent(person.id);
+          console.log(`Auto-approved student ${person.name} for demonstration`);
+        });
       }
     }, 1000);
   }
