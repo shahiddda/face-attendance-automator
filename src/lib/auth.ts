@@ -100,7 +100,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   approveLeaveRequest: (requestId: string) => {
     const currentRequests = get().leaveRequests;
     const updatedRequests = currentRequests.map(req => 
-      req.id === requestId ? { ...req, status: 'approved' } : req
+      req.id === requestId ? { ...req, status: 'approved' as const } : req
     );
     
     set({ leaveRequests: updatedRequests });
@@ -110,7 +110,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   rejectLeaveRequest: (requestId: string) => {
     const currentRequests = get().leaveRequests;
     const updatedRequests = currentRequests.map(req => 
-      req.id === requestId ? { ...req, status: 'rejected' } : req
+      req.id === requestId ? { ...req, status: 'rejected' as const } : req
     );
     
     set({ leaveRequests: updatedRequests });
