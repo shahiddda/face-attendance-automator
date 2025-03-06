@@ -1,61 +1,63 @@
-# Welcome to your  project
 
-## Project info
+# Face Recognition Attendance System (Python)
 
-**URL**: [https://lovable.dev/projects/1de20fc8-e744-40de-8efe-9ceb5a1f22e2](https://face-attendance-automator.lovable.app/)
+This project is a facial recognition attendance system built using Flask, OpenCV, and face_recognition library for Python.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- Face detection and recognition
+- Student registration with photo capture
+- Automatic attendance marking
+- Admin dashboard with attendance analytics
+- Student approval system
+- Data export functionality
 
+## Requirements
 
-**Use your preferred IDE**
+- Python 3.7+
+- OpenCV
+- Flask
+- face_recognition library
+- Other dependencies listed in requirements.txt
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Installation and Setup
 
+1. Clone the repository
+2. Create a virtual environment:
+   ```
+   python -m venv venv
+   ```
+3. Activate the virtual environment:
+   - Windows: `venv\Scripts\activate`
+   - Linux/Mac: `source venv/bin/activate`
+4. Install the dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+5. Run the application:
+   ```
+   python app.py
+   ```
 
-Follow these steps:
+## Usage
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Access the web application at http://localhost:5000
+2. Register new faces through the registration page
+3. Admin can log in and approve registered students
+4. Students can mark attendance through the mark attendance page
+5. View and export attendance records through the admin dashboard
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Admin Access
 
-# Step 3: Install the necessary dependencies.
-npm i
+Default admin credentials:
+- Username: admin
+- Password: admin123
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Developed by
 
-**Edit a file directly in GitHub**
+- Shahid Inamdar
+- Saloni Upaskar
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## License
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-
-## I want to use a custom domain - is that possible?
-
+This project is licensed under the MIT License.

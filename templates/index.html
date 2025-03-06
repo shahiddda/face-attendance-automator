@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Attendance System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white dark:bg-gray-800 shadow-md">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-purple-600 dark:text-purple-400">Face Attendance System</h1>
+                    <nav>
+                        <ul class="flex space-x-4">
+                            <li><a href="/" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900">Home</a></li>
+                            <li><a href="/register" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900">Register</a></li>
+                            <li><a href="/mark-attendance" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900">Mark Attendance</a></li>
+                            <li><a href="/login" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900">Admin Login</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Welcome to Face Attendance System</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400">Automated attendance tracking using facial recognition</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-semibold mb-4 text-purple-600 dark:text-purple-400">Register Your Face</h3>
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">New students can register their face for attendance tracking.</p>
+                    <a href="/register" class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded">
+                        Register Now
+                    </a>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-semibold mb-4 text-purple-600 dark:text-purple-400">Mark Attendance</h3>
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">Quickly mark your attendance using facial recognition.</p>
+                    <a href="/mark-attendance" class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded">
+                        Mark Attendance
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white dark:bg-gray-800 shadow-inner mt-auto">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        © 2023 Face Attendance System
+                    </p>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Developed by 
+                            <span class="font-medium text-purple-600 dark:text-purple-400">Shahid Inamdar</span> & 
+                            <span class="font-medium text-purple-600 dark:text-purple-400">Saloni Upaskar</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,309 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Face Attendance System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white dark:bg-gray-800 shadow-md">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-purple-600 dark:text-purple-400">Admin Dashboard</h1>
+                    <nav>
+                        <ul class="flex space-x-4">
+                            <li><a href="/" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900">Home</a></li>
+                            <li><a href="/admin-dashboard" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900 font-medium text-purple-600 dark:text-purple-400">Dashboard</a></li>
+                            <li><a href="/logout" class="px-3 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900">Logout</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                        <h2 class="text-xl font-semibold mb-4">Attendance Overview</h2>
+                        <div class="aspect-video">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold">Recent Attendance</h2>
+                            <button id="export-btn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md">
+                                Export Data
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    {% for attendance in attendances %}
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {% for person in people %}
+                                                {% if person.id == attendance.person_id %}
+                                                    <div class="text-sm font-medium">{{ person.name }}</div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ attendance.timestamp.strftime('%Y-%m-%d') }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ attendance.timestamp.strftime('%H:%M:%S') }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                {% if attendance.status == 'present' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                {% elif attendance.status == 'late' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                                                {{ attendance.status|capitalize }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    
+                                    {% if not attendances %}
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                            No attendance records found
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+                        <h2 class="text-xl font-semibold mb-4">Student Approval</h2>
+                        
+                        <div class="space-y-4">
+                            {% for person in people %}
+                                {% if not person.is_approved %}
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-16 w-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                            <img src="{{ url_for('static', filename=person.image.replace('static/', '')) }}" 
+                                                alt="{{ person.name }}" class="h-full w-full object-cover">
+                                        </div>
+                                        <div class="ml-4 flex-grow">
+                                            <div class="text-lg font-medium">{{ person.name }}</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ person.role }}</div>
+                                        </div>
+                                        <button class="approve-btn px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md"
+                                                data-person-id="{{ person.id }}">
+                                            Approve
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% set has_unapproved = false %}
+                            {% for person in people %}
+                                {% if not person.is_approved %}
+                                    {% set has_unapproved = true %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not has_unapproved %}
+                                <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                    No pending approvals
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">Registered Students</h2>
+                        
+                        <div class="space-y-4 max-h-96 overflow-y-auto">
+                            {% for person in people %}
+                                {% if person.is_approved %}
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-12 w-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                            <img src="{{ url_for('static', filename=person.image.replace('static/', '')) }}" 
+                                                alt="{{ person.name }}" class="h-full w-full object-cover">
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-md font-medium">{{ person.name }}</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ person.role }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% set has_approved = false %}
+                            {% for person in people %}
+                                {% if person.is_approved %}
+                                    {% set has_approved = true %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not has_approved %}
+                                <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                    No approved students
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white dark:bg-gray-800 shadow-inner mt-auto">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        © 2023 Face Attendance System
+                    </p>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Developed by 
+                            <span class="font-medium text-purple-600 dark:text-purple-400">Shahid Inamdar</span> & 
+                            <span class="font-medium text-purple-600 dark:text-purple-400">Saloni Upaskar</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // Chart initialization
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        const today = new Date();
+        
+        // Generate dates for last 7 days
+        const dates = Array(7).fill().map((_, i) => {
+            const date = new Date(today);
+            date.setDate(date.getDate() - (6 - i));
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        });
+        
+        // Generate random attendance data for demonstration
+        const presentData = Array(7).fill().map(() => Math.floor(Math.random() * 30));
+        const absentData = Array(7).fill().map(() => Math.floor(Math.random() * 10));
+        const lateData = Array(7).fill().map(() => Math.floor(Math.random() * 5));
+        
+        const attendanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Present',
+                        data: presentData,
+                        backgroundColor: '#10B981',
+                        borderColor: '#10B981',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Absent',
+                        data: absentData,
+                        backgroundColor: '#EF4444',
+                        borderColor: '#EF4444',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Late',
+                        data: lateData,
+                        backgroundColor: '#F59E0B',
+                        borderColor: '#F59E0B',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Students'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: true
+            }
+        });
+        
+        // Approve button functionality
+        document.querySelectorAll('.approve-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const personId = e.target.dataset.personId;
+                
+                try {
+                    const response = await fetch(`/approve-student/${personId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Hide the approved student from the list
+                        e.target.closest('.border').remove();
+                        
+                        // Refresh the page after a brief delay to show the updated lists
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        console.error('Error approving student:', data.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+        
+        // Export button functionality
+        document.getElementById('export-btn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/export-attendance');
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Export functionality would be implemented here.');
+                } else {
+                    console.error('Error exporting attendance:', data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
