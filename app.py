@@ -209,12 +209,14 @@ def generate_frames():
             face_image = frame[y:y+h, x:x+w]
             rgb_face = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
             
-            # Get face encoding
+            # Get face encoding using face_recognition
             face_locations = face_recognition.face_locations(rgb_face)
             if face_locations:
                 face_encoding = face_recognition.face_encodings(rgb_face, face_locations)[0]
                 
                 # Compare with approved encodings
+                name_to_show = "Unknown"
+                matched_person = None
                 if approved_encodings:
                     matches = face_recognition.compare_faces(approved_encodings, face_encoding)
                     if True in matches:
@@ -226,22 +228,32 @@ def generate_frames():
                         if person_id not in recognition_cooldown or now - recognition_cooldown[person_id] > 10:
                             person = Person.query.get(person_id)
                             
-                            # Mark attendance
-                            new_attendance = Attendance(
-                                id=str(uuid.uuid4()),
-                                person_id=person_id,
-                                timestamp=datetime.now(),
-                                status='present'
-                            )
-                            db.session.add(new_attendance)
-                            db.session.commit()
-                            
-                            # Update cooldown
-                            recognition_cooldown[person_id] = now
-                            
-                            # Add name on the frame
-                            cv2.putText(frame, person.name, (x, y-10), 
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (138, 92, 246), 2)
+                            # Only save/show attendance if person name is not Unknown
+                            if person and person.name != "Unknown":
+                                # Mark attendance
+                                new_attendance = Attendance(
+                                    id=str(uuid.uuid4()),
+                                    person_id=person_id,
+                                    timestamp=datetime.now(),
+                                    status='present'
+                                )
+                                db.session.add(new_attendance)
+                                db.session.commit()
+                                
+                                # Update cooldown
+                                recognition_cooldown[person_id] = now
+                                
+                                # Add name on the frame
+                                name_to_show = person.name
+                                matched_person = person
+
+                if matched_person:
+                    cv2.putText(frame, matched_person.name, (x, y-10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (138, 92, 246), 2)
+                else:
+                    # Optionally skip saving attendance for unknown faces
+                    # Don't display "Unknown" at all on the frame.
+                    pass
         
         # Encode frame for streaming
         ret, buffer = cv2.imencode('.jpg', frame)
@@ -270,13 +282,15 @@ def get_attendance_records():
     
     for attendance in attendances:
         person = Person.query.get(attendance.person_id)
-        records.append({
-            'id': attendance.id,
-            'personId': attendance.person_id,
-            'personName': person.name if person else 'Unknown',
-            'timestamp': attendance.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'status': attendance.status
-        })
+        # Only show attendance where person name is not Unknown
+        if person and person.name != "Unknown":
+            records.append({
+                'id': attendance.id,
+                'personId': attendance.person_id,
+                'personName': person.name,
+                'timestamp': attendance.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'status': attendance.status
+            })
     
     return jsonify(records)
 
